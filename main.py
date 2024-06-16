@@ -10,8 +10,9 @@ import time
 import argparse
 import sys
 from itertools import groupby
-from vybe_network import *
 from utils import *
+import dexscreener
+import vybe_network
 from config import (BITQUERY_CLIENT_ID, BITQUERY_CLIENT_SECRET,
                     BITQUERY_V1_API_KEY, API_VERSION, API_VERSION_URL_MAP,
                     EXCLUDED_MINT_ADDRESSES, variables)
@@ -324,6 +325,8 @@ def get_dex_trades_data(unique_signatures,
         process_dex_trades_data(dex_trades_data)
 
         save_json_file(saved_trades_file_path, combined_dex_trades_data)
+        save_json_file(saved_remaining_mint_addresses_file_path,
+                       list(remaining_mint_addresses))
 
 
 def process_dex_trades_data(dex_trades_data):
@@ -340,17 +343,20 @@ def process_dex_trades_data(dex_trades_data):
         transaction_block = first_transaction['Block']
         transaction_transaction = first_transaction['Transaction']
 
+        first_transaction_trade_sell_mint_address = first_transaction_trade[
+            'Sell']['Currency']['MintAddress']
+        last_transaction_trade_buy_mint_address = last_transaction_trade[
+            'Buy']['Currency']['MintAddress']
+
         # Check if MEV
-        if first_transaction_trade['Sell']['Currency'][
-                'MintAddress'] == last_transaction_trade['Buy']['Currency'][
-                    'MintAddress']:
+        if first_transaction_trade_sell_mint_address == last_transaction_trade_buy_mint_address:
             continue
 
         # Check if addresses are excluded
-        elif first_transaction_trade['Sell']['Currency'][
-                'MintAddress'] in EXCLUDED_MINT_ADDRESSES or last_transaction_trade[
-                    'Buy']['Currency'][
-                        'MintAddress'] in EXCLUDED_MINT_ADDRESSES:
+        elif (first_transaction_trade_sell_mint_address
+              in EXCLUDED_MINT_ADDRESSES
+              or last_transaction_trade_buy_mint_address
+              in EXCLUDED_MINT_ADDRESSES):
             continue
 
         else:
@@ -364,6 +370,10 @@ def process_dex_trades_data(dex_trades_data):
             }
 
             combined_dex_trades_data.append(summarized_trade)
+            remaining_mint_addresses.add(
+                first_transaction_trade_sell_mint_address)
+            remaining_mint_addresses.add(
+                last_transaction_trade_buy_mint_address)
 
 
 ## Main Program ##
@@ -400,7 +410,14 @@ if __name__ == "__main__":
         '--file',
         type=str,
         help=
-        "The file to load the list of mint addresses (.txt), the list of unique signatires (.json), or the DEX trades data (.json). REQURED for INPUT, LOAD_SIGNATURES, and LOAD_TRADES mode."
+        "The file to load the JSON that contains the list of mint addresses, the list of unique signatires, or the DEX trades data. REQURED for INPUT, LOAD_SIGNATURES, and LOAD_TRADES mode."
+    )
+    parser.add_argument(
+        '-af',
+        '--addresses_file',
+        type=str,
+        help=
+        "The file to load the JSON that contains the list of remaining mint addresses. REQURED for LOAD_TRADES mode."
     )
     parser.add_argument(
         '-v',
@@ -416,6 +433,7 @@ if __name__ == "__main__":
     mint_address = args.address
     max_node_depth = args.depth
     file_path = args.file
+    addresses_file_path = args.addresses_file
     volume_threshold = args.volume
 
     if mode not in ['BFS', 'INPUT', 'LOAD_SIGNATURES', 'LOAD_TRADES']:
@@ -437,6 +455,7 @@ if __name__ == "__main__":
 
     unique_signatures = set()
     combined_dex_trades_data = []
+    remaining_mint_addresses = set()
     start_time = time.time()
 
     print('\n')
@@ -464,6 +483,7 @@ if __name__ == "__main__":
         saved_unique_mint_addresses_file_path = f"unique_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
         saved_unique_signatures_file_path = f"unique_signatures_BFS_{mint_address}_{current_datetime}.json"
         saved_trades_file_path = f"combined_dex_trades_data_BFS_{mint_address}_{current_datetime}.json"
+        saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
 
         unique_mint_addresses = bfs_accumulate_unique_signatures(
             mint_address, max_node_depth)
@@ -571,6 +591,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         combined_dex_trades_data = load_json_file(file_path)
+        remaining_mint_addresses = load_json_file(addresses_file_path)
 
         print('\nNo. of processed DEX Trades data retrieved: {}'.format(
             len(combined_dex_trades_data)))
@@ -578,6 +599,9 @@ if __name__ == "__main__":
         print(
             '\nTotal time taken to load: {:.2f} seconds\n'.format(time.time() -
                                                                   start_time))
+
+    token_details_dict = dexscreener.get_token_details(
+        list(remaining_mint_addresses))
 
 # Nodes and Edges Data Structure
 
@@ -594,37 +618,4 @@ if __name__ == "__main__":
 #         {'source': 'B', 'target': 'D', 'weight': 4},
 #         {'source': 'C', 'target': 'D', 'weight': 2}
 #     ]
-# }
-
-# query MyQuery {
-#   Solana {
-#     DEXTrades(
-#       limit: {count: 100}
-#       orderBy: {descendingByField: "Block_Time_Field"}
-#       where: {Trade: {Buy: {Currency: {MintAddress: {in: ["GtDZKAqvMZMnti46ZewMiXCa4oXF4bZxwQPoKzXPFxZn", "So11111111111111111111111111111111111111112"]}}}, Sell: {Currency: {MintAddress: {in: ["So11111111111111111111111111111111111111112", "Av6qVigkb7USQyPXJkUvAEm4f599WTRvd75PUWBA9eNm"]}}}}}
-#     ) {
-#       Block {
-#         Time_Field: Time(interval: {in: hours, count: 1})
-#       }
-#       median_price: median(of: Trade_Buy_Price)
-#       average_price: average(of: Trade_Buy_Price)
-#       total_transactions: count(distinct: Transaction_Signature)
-#       buy_volume: sum(of: Trade_Buy_Amount)
-#       sell_volume: sum(of: Trade_Sell_Amount)
-#       buy_volume_usd: sum(of: Trade_Buy_AmountInUSD)
-#       sell_volume_usd: sum(of: Trade_Sell_AmountInUSD)
-#       Trade {
-#         Buy {
-#           Currency {
-#             MintAddress
-#           }
-#         }
-#         Sell {
-#           Currency {
-#             MintAddress
-#           }
-#         }
-#       }
-#     }
-#   }
 # }
