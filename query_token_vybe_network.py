@@ -2,6 +2,7 @@ import requests
 import datetime
 from urllib3.exceptions import InsecureRequestWarning
 import urllib3
+from utils import save_json_file
 from config import VYBE_NETWORK_X_API_KEY
 
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -17,13 +18,13 @@ if response.status_code == 200:
     tokens_data = response.json().get('data', [])
     print('\nNo. of tokens queried: {}'.format(len(tokens_data)))
 
+    mint_addresses = [token['mintAddress'] for token in tokens_data]
+
 else:
     raise Exception('Query failed and return code is {}.'.format(
         response.status_code))
 
 current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-file_name = f"vybe_network_highest_mcap_mint_addresses_{current_datetime}.txt"
+file_name = f"vybe_network_highest_mcap_mint_addresses_{current_datetime}.json"
 
-with open(file_name, 'w') as file:
-    for token in tokens_data:
-        file.write(token['mintAddress'] + '\n')
+save_json_file(file_name, mint_addresses)

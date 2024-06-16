@@ -63,7 +63,7 @@ def get_api_base_url():
         return url
 
 
-def bitqueryAPICall(payload, max_retries=5, retry_after=10):
+def bitqueryAPICall(payload, max_retries=10, retry_after=10):
 
     retry_count = 0
 
@@ -221,6 +221,8 @@ def bfs_accumulate_unique_signatures(mint_address, max_node_depth):
                 children_mint_addresses = accumulate_txn_signatures(
                     current_mint_address)
 
+                save_json_file(saved_unique_mint_addresses_file_path,
+                               list(unique_mint_addresses))
                 save_json_file(saved_unique_signatures_file_path,
                                list(unique_signatures))
 
@@ -459,6 +461,7 @@ if __name__ == "__main__":
             )
             sys.exit(1)
 
+        saved_unique_mint_addresses_file_path = f"unique_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
         saved_unique_signatures_file_path = f"unique_signatures_BFS_{mint_address}_{current_datetime}.json"
         saved_trades_file_path = f"combined_dex_trades_data_BFS_{mint_address}_{current_datetime}.json"
 
@@ -492,7 +495,7 @@ if __name__ == "__main__":
             )
             sys.exit(1)
 
-        unique_mint_addresses = load_txt_file_to_list(file_path)
+        unique_mint_addresses = load_json_file(file_path)
         unique_mint_addresses = set(unique_mint_addresses) - set(
             EXCLUDED_MINT_ADDRESSES)
         total_no_of_unique_mint_addresses = len(unique_mint_addresses)
