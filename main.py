@@ -717,9 +717,9 @@ if __name__ == "__main__":
 #         'D': {'name': 'Node D', 'index': 4, 'website': 'wwww.netflix.com'},
 #     },
 #     'edges': {
-#         ('A', 'B'): 5,
-#         ('A', 'C'): 3,
-#         ('B', 'A'): 4,
-#         ('C', 'D'): 8
+#         'A-B': 5,
+#         'A-C': 3,
+#         'B-A': 4,
+#         'C-D': 8
 #     }
 # }
