@@ -1,5 +1,10 @@
 import requests
 import time
+from urllib3.exceptions import InsecureRequestWarning, NotOpenSSLWarning
+import urllib3
+
+urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(NotOpenSSLWarning)
 
 
 def get_token_details(mint_addresses,
@@ -11,6 +16,8 @@ def get_token_details(mint_addresses,
     total_mint_addresses = len(mint_addresses)
     count = 1
 
+    print('\n')
+
     for i in range(0, total_mint_addresses, no_of_tokens_per_batch):
 
         start_number = i + 1
@@ -20,7 +27,7 @@ def get_token_details(mint_addresses,
         else:
             end_number = i + no_of_tokens_per_batch
 
-        print('\nQuerying token details {} - {} out of {}'.format(
+        print('Querying token details {} - {} out of {}'.format(
             start_number, end_number, total_mint_addresses))
 
         mint_addresses_batch = mint_addresses[i:i + no_of_tokens_per_batch]

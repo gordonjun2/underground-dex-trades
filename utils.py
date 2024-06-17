@@ -1,4 +1,5 @@
 import json
+import sys
 
 
 def load_json_file(file_path):
@@ -7,12 +8,15 @@ def load_json_file(file_path):
             return json.load(f)
     except FileNotFoundError:
         print("\nThe file not found or is invalid.\n")
-        return []
+        sys.exit(1)
 
 
 def save_json_file(file_path, data):
     with open(file_path, 'w') as f:
-        json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
+        if isinstance(data, list):
+            json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
+        else:
+            json.dump(data, f, indent=4)
 
 
 def load_txt_file_to_list(file_path):
@@ -24,7 +28,7 @@ def load_txt_file_to_list(file_path):
         return lines
     except FileNotFoundError:
         print("\nThe file not found or is invalid.\n")
-        return []
+        sys.exit(1)
 
 
 def can_be_float(string):

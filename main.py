@@ -4,7 +4,7 @@ import pytz
 from datetime import datetime, timedelta
 from tzlocal import get_localzone
 from collections import deque
-from urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning, NotOpenSSLWarning
 import urllib3
 import time
 import argparse
@@ -13,11 +13,14 @@ import copy
 from itertools import groupby
 from utils import *
 import dexscreener
+from plot_graph import plot_nodes_edges_graph
+# from dash_app import app
 from config import (BITQUERY_CLIENT_ID, BITQUERY_CLIENT_SECRET,
                     BITQUERY_V1_API_KEY, API_VERSION, API_VERSION_URL_MAP,
                     EXCLUDED_MINT_ADDRESSES, variables)
 
 urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(NotOpenSSLWarning)
 
 ### Functions ###
 
@@ -391,8 +394,9 @@ if __name__ == "__main__":
         help=
         "BFS: use Breadth First Search to traverse and query the tree of the provided mint address up to the specified depth and retrieve transaction signatures and DEX trades data, \
         INPUT: provide a list of mint addresses to query and retrieve transaction signatures and DEX trades data, \
-        LOAD_SIGNATURES: load the transaction signatures from a saved JSON file and retrieve DEX trades data, and \
-        LOAD_TRADES: skip the query process and load the DEX trades data from a saved JSON file."
+        LOAD_SIGNATURES: load the transaction signatures from a saved JSON file and retrieve DEX trades data, \
+        LOAD_TRADES: skip the query process and load the DEX trades data from a saved JSON file, and \
+        PLOT: skip the query process and load the graph data from a saved JSON file."
     )
     parser.add_argument(
         '-a',
@@ -436,9 +440,9 @@ if __name__ == "__main__":
     addresses_file_path = args.addresses_file
     volume_threshold = args.volume
 
-    if mode not in ['BFS', 'INPUT', 'LOAD_SIGNATURES', 'LOAD_TRADES']:
+    if mode not in ['BFS', 'INPUT', 'LOAD_SIGNATURES', 'LOAD_TRADES', 'PLOT']:
         print(
-            "\nMode {} is not supported. Supported modes are BFS, INPUT, and LOAD.\n"
+            "\nMode {} is not supported. Supported modes are BFS, INPUT, LOAD_SIGNATURES, LOAD_TRADES, and PLOT.\n"
             .format(mode))
         sys.exit(1)
 
@@ -468,211 +472,240 @@ if __name__ == "__main__":
     else:
         headers = generate_oAuth()
 
-    if mode in 'BFS':
+    if mode in ['BFS', 'INPUT', 'LOAD_SIGNATURES', 'LOAD_TRADES']:
 
-        print("\nMode: {}".format(mode))
-        print("First Mint Address: {}".format(mint_address))
-        print("Max Node Depth: {}".format(max_node_depth))
-        print("Minimum Volume Threshold: {}".format(volume_threshold))
+        if mode in 'BFS':
 
-        if mint_address in ['', None]:
+            print("\nMode: {}".format(mode))
+            print("First Mint Address: {}".format(mint_address))
+            print("Max Node Depth: {}".format(max_node_depth))
+            print("Minimum Volume Threshold: {}".format(volume_threshold))
+
+            if mint_address in ['', None]:
+                print(
+                    "\nPlease provide the first mint address to query in BFS mode.\n"
+                )
+                sys.exit(1)
+
+            saved_unique_mint_addresses_file_path = f"unique_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
+            saved_unique_signatures_file_path = f"unique_signatures_BFS_{mint_address}_{current_datetime}.json"
+            saved_trades_file_path = f"combined_dex_trades_data_BFS_{mint_address}_{current_datetime}.json"
+            saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
+
+            unique_mint_addresses = bfs_accumulate_unique_signatures(
+                mint_address, max_node_depth)
+            total_no_of_unique_mint_addresses = len(unique_mint_addresses)
+
+            print('\nNo. of unprocessed unique mint addresses retrieved: {}'.
+                  format(total_no_of_unique_mint_addresses))
+
+            print('\nNo. of unique signatures retrieved: {}'.format(
+                len(unique_signatures)))
+
+            get_dex_trades_data(unique_signatures)
+
+        elif mode == 'INPUT':
+
+            print("\nMode: {}".format(mode))
+            print("File Path to the List of Mint Addresses: {}".format(
+                file_path))
+            print("Minimum Volume Threshold: {}".format(volume_threshold))
+
+            if file_path in ['', None]:
+                print(
+                    "\nPlease provide the file path to load the list of mint addresses in INPUT mode.\n"
+                )
+                sys.exit(1)
+
+            unique_mint_addresses = load_json_file(file_path)
+            unique_mint_addresses = set(unique_mint_addresses) - set(
+                EXCLUDED_MINT_ADDRESSES)
+            total_no_of_unique_mint_addresses = len(unique_mint_addresses)
+
+            print('\nNo. of unprocessed unique mint addresses retrieved: {}'.
+                  format(total_no_of_unique_mint_addresses))
+
+            saved_unique_signatures_file_path = f"unique_signatures_INPUT_{current_datetime}.json"
+            saved_trades_file_path = f"combined_dex_trades_data_INPUT_{current_datetime}.json"
+            saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_INPUT_{current_datetime}.json"
+
+            mint_address_count = 1
+
+            for mint_address in unique_mint_addresses:
+                print('\nQuerying mint address {} ({} / {})'.format(
+                    mint_address, mint_address_count,
+                    total_no_of_unique_mint_addresses))
+
+                accumulate_txn_signatures(mint_address)
+
+                save_json_file(saved_unique_signatures_file_path,
+                               list(unique_signatures))
+
+                mint_address_count += 1
+
+            print('\nNo. of unique signatures retrieved: {}'.format(
+                len(unique_signatures)))
+
+            get_dex_trades_data(unique_signatures)
+
+        elif mode == 'LOAD_SIGNATURES':
+
+            print("\nMode: {}".format(mode))
+            print("File Path to the Saved Unique Signatures: {}".format(
+                file_path))
+            print("Minimum Volume Threshold: {}".format(volume_threshold))
+
+            if file_path in ['', None]:
+                print(
+                    "\nPlease provide the file path to load the uniques signatures in LOAD_SIGNATURES mode.\n"
+                )
+                sys.exit(1)
+
+            unique_signatures = load_json_file(file_path)
+
+            print('\nNo. of unique signatures retrieved: {}'.format(
+                len(unique_signatures)))
+
+            saved_trades_file_path = f"combined_dex_trades_data_LOAD_{current_datetime}.json"
+            saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_LOAD_{current_datetime}.json"
+
+            get_dex_trades_data(unique_signatures)
+
+        else:
+
+            print("\nMode: {}".format(mode))
             print(
-                "\nPlease provide the first mint address to query in BFS mode.\n"
-            )
-            sys.exit(1)
+                "File Path to the Saved DEX Trades Data: {}".format(file_path))
+            print("File Path to the Saved Remaining Mint Addresses: {}".format(
+                addresses_file_path))
+            print("Minimum Volume Threshold: {}".format(volume_threshold))
 
-        saved_unique_mint_addresses_file_path = f"unique_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
-        saved_unique_signatures_file_path = f"unique_signatures_BFS_{mint_address}_{current_datetime}.json"
-        saved_trades_file_path = f"combined_dex_trades_data_BFS_{mint_address}_{current_datetime}.json"
-        saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
+            if file_path in ['', None]:
+                print(
+                    "\nPlease provide the file path to load the DEX trades data in LOAD_TRADES mode.\n"
+                )
+                sys.exit(1)
+            elif addresses_file_path in ['', None]:
+                print(
+                    "\nPlease provide the file path to load the remaining mint addresses in LOAD_TRADES mode.\n"
+                )
+                sys.exit(1)
 
-        unique_mint_addresses = bfs_accumulate_unique_signatures(
-            mint_address, max_node_depth)
-        total_no_of_unique_mint_addresses = len(unique_mint_addresses)
+            combined_dex_trades_data = load_json_file(file_path)
+            remaining_mint_addresses = load_json_file(addresses_file_path)
+
+        print('\nNo. of processed DEX Trades data retrieved: {}'.format(
+            len(combined_dex_trades_data)))
+
+        print('\nNo. of processed unique mint addresses retrieved: {}'.format(
+            len(remaining_mint_addresses)))
+
+        extra_token_details_dict = dexscreener.get_token_details(
+            list(remaining_mint_addresses))
 
         print(
-            '\nNo. of unprocessed unique mint addresses retrieved: {}'.format(
-                total_no_of_unique_mint_addresses))
+            '\nTotal time taken to query: {:.2f} seconds'.format(time.time() -
+                                                                 start_time))
 
-        print('\nNo. of unique signatures retrieved: {}'.format(
-            len(unique_signatures)))
+        for dex_trade in combined_dex_trades_data:
+            trade_sell = dex_trade['Trade']['Sell']
+            trade_buy = dex_trade['Trade']['Buy']
 
-        get_dex_trades_data(unique_signatures)
+            trade_sell_mint_address = trade_sell['Currency']['MintAddress']
+            trade_buy_mint_address = trade_buy['Currency']['MintAddress']
 
-    elif mode == 'INPUT':
+            for mint_address in [
+                    trade_sell_mint_address, trade_buy_mint_address
+            ]:
+                if mint_address not in graph_data['nodes']:
+                    extra_token_details = extra_token_details_dict.get(
+                        mint_address, {})
 
-        print("\nMode: {}".format(mode))
-        print("File Path to the List of Mint Addresses: {}".format(file_path))
-        print("Minimum Volume Threshold: {}".format(volume_threshold))
+                    token_website_detail = extra_token_details.get(
+                        'info', {}).get('websites', [])
+                    if token_website_detail:
+                        token_website = token_website_detail[0].get('url', '')
+                    else:
+                        token_website = ''
 
-        if file_path in ['', None]:
-            print(
-                "\nPlease provide the file path to load the list of mint addresses in INPUT mode.\n"
-            )
-            sys.exit(1)
+                    token_telegram = ''
+                    token_twitter = ''
+                    token_socials_detail = extra_token_details.get(
+                        'info', {}).get('socials', [])
+                    for token_social in token_socials_detail:
+                        if token_social['type'] == 'telegram':
+                            token_telegram = token_social.get('url', '')
+                        elif token_social['type'] == 'twitter':
+                            token_twitter = token_social.get('url', '')
 
-        unique_mint_addresses = load_json_file(file_path)
-        unique_mint_addresses = set(unique_mint_addresses) - set(
-            EXCLUDED_MINT_ADDRESSES)
-        total_no_of_unique_mint_addresses = len(unique_mint_addresses)
+                    graph_data['nodes'][mint_address] = {
+                        'mint_address': mint_address,
+                        'name': trade_sell['Currency']['Name'],
+                        'symbol': trade_sell['Currency']['Symbol'],
+                        'volume': extra_token_details.get('volume', {}),
+                        'price_change':
+                        extra_token_details.get('priceChange', {}),
+                        'liquidity': extra_token_details.get('liquidity', {}),
+                        'fdv': extra_token_details.get('fdv', 0),
+                        'website': token_website,
+                        'telegram': token_telegram,
+                        'twitter': token_twitter
+                    }
 
-        print(
-            '\nNo. of unprocessed unique mint addresses retrieved: {}'.format(
-                total_no_of_unique_mint_addresses))
-
-        saved_unique_signatures_file_path = f"unique_signatures_INPUT_{current_datetime}.json"
-        saved_trades_file_path = f"combined_dex_trades_data_INPUT_{current_datetime}.json"
-        saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_INPUT_{current_datetime}.json"
-
-        mint_address_count = 1
-
-        for mint_address in unique_mint_addresses:
-            print('\nQuerying mint address {} ({} / {})'.format(
-                mint_address, mint_address_count,
-                total_no_of_unique_mint_addresses))
-
-            accumulate_txn_signatures(mint_address)
-
-            save_json_file(saved_unique_signatures_file_path,
-                           list(unique_signatures))
-
-            mint_address_count += 1
-
-        print('\nNo. of unique signatures retrieved: {}'.format(
-            len(unique_signatures)))
-
-        get_dex_trades_data(unique_signatures)
-
-    elif mode == 'LOAD_SIGNATURES':
-
-        print("\nMode: {}".format(mode))
-        print("File Path to the Saved Unique Signatures: {}".format(file_path))
-        print("Minimum Volume Threshold: {}".format(volume_threshold))
-
-        if file_path in ['', None]:
-            print(
-                "\nPlease provide the file path to load the uniques signatures in LOAD_SIGNATURES mode.\n"
-            )
-            sys.exit(1)
-
-        unique_signatures = load_json_file(file_path)
-
-        print('\nNo. of unique signatures retrieved: {}'.format(
-            len(unique_signatures)))
-
-        saved_trades_file_path = f"combined_dex_trades_data_LOAD_{current_datetime}.json"
-        saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_LOAD_{current_datetime}.json"
-
-        get_dex_trades_data(unique_signatures)
-
-    else:
-
-        print("\nMode: {}".format(mode))
-        print("File Path to the Saved DEX Trades Data: {}".format(file_path))
-        print("File Path to the Saved Remaining Mint Addresses: {}".format(
-            addresses_file_path))
-        print("Minimum Volume Threshold: {}".format(volume_threshold))
-
-        if file_path in ['', None]:
-            print(
-                "\nPlease provide the file path to load the DEX trades data in LOAD_TRADES mode.\n"
-            )
-            sys.exit(1)
-        elif addresses_file_path in ['', None]:
-            print(
-                "\nPlease provide the file path to load the remaining mint addresses in LOAD_TRADES mode.\n"
-            )
-            sys.exit(1)
-
-        combined_dex_trades_data = load_json_file(file_path)
-        remaining_mint_addresses = load_json_file(addresses_file_path)
-
-    print('\nNo. of processed DEX Trades data retrieved: {}'.format(
-        len(combined_dex_trades_data)))
-
-    print('\nNo. of processed unique mint addresses retrieved: {}'.format(
-        len(remaining_mint_addresses)))
-
-    extra_token_details_dict = dexscreener.get_token_details(
-        list(remaining_mint_addresses))
-
-    print('\nTotal time taken to query: {:.2f} seconds'.format(time.time() -
-                                                               start_time))
-
-    for dex_trade in combined_dex_trades_data:
-        trade_sell = dex_trade['Trade']['Sell']
-        trade_buy = dex_trade['Trade']['Buy']
-
-        trade_sell_mint_address = trade_sell['Currency']['MintAddress']
-        trade_buy_mint_address = trade_buy['Currency']['MintAddress']
-
-        for mint_address in [trade_sell_mint_address, trade_buy_mint_address]:
-            if mint_address not in graph_data['nodes']:
-                extra_token_details = extra_token_details_dict.get(
-                    mint_address, {})
-
-                token_website_detail = extra_token_details.get('info', {}).get(
-                    'websites', [])
-                if token_website_detail:
-                    token_website = token_website_detail[0].get('url', '')
-                else:
-                    token_website = ''
-
-                token_telegram = ''
-                token_twitter = ''
-                token_socials_detail = extra_token_details.get('info', {}).get(
-                    'socials', [])
-                for token_social in token_socials_detail:
-                    if token_social['type'] == 'telegram':
-                        token_telegram = token_social.get('url', '')
-                    elif token_social['type'] == 'twitter':
-                        token_twitter = token_social.get('url', '')
-
-                graph_data['nodes'][mint_address] = {
-                    'mint_address': mint_address,
-                    'name': trade_sell['Currency']['Name'],
-                    'symbol': trade_sell['Currency']['Symbol'],
-                    'volume': extra_token_details.get('volume', {}),
-                    'price_change': extra_token_details.get('priceChange', {}),
-                    'liquidity': extra_token_details.get('liquidity', {}),
-                    'fdv': extra_token_details.get('fdv', 0),
-                    'website': token_website,
-                    'telegram': token_telegram,
-                    'twitter': token_twitter
-                }
-
-        trade_sell_amount_in_usd = trade_sell['AmountInUSD']
-        if trade_sell_amount_in_usd == '0' or not can_be_float(
-                trade_sell_amount_in_usd):
-            trade_buy_amount_in_usd = trade_buy['AmountInUSD']
-            if trade_buy_amount_in_usd == '0' or not can_be_float(
-                    trade_buy_amount_in_usd):
-                trade_sell_amount = trade_sell['Amount']
-                trade_sell_price_in_usd = trade_sell['PriceInUSD']
-                if trade_sell_amount == '0' or not can_be_float(
-                        trade_sell_amount) or trade_sell_price_in_usd == 0:
-                    trade_buy_amount = trade_buy['Amount']
-                    trade_buy_price_in_usd = trade_buy['PriceInUSD']
-                    if trade_buy_amount == '0' or not can_be_float(
-                            trade_buy_amount) or trade_buy_price_in_usd == 0:
-                        trade_amount_in_usd = 0
+            trade_sell_amount_in_usd = trade_sell['AmountInUSD']
+            if trade_sell_amount_in_usd == '0' or not can_be_float(
+                    trade_sell_amount_in_usd):
+                trade_buy_amount_in_usd = trade_buy['AmountInUSD']
+                if trade_buy_amount_in_usd == '0' or not can_be_float(
+                        trade_buy_amount_in_usd):
+                    trade_sell_amount = trade_sell['Amount']
+                    trade_sell_price_in_usd = trade_sell['PriceInUSD']
+                    if trade_sell_amount == '0' or not can_be_float(
+                            trade_sell_amount) or trade_sell_price_in_usd == 0:
+                        trade_buy_amount = trade_buy['Amount']
+                        trade_buy_price_in_usd = trade_buy['PriceInUSD']
+                        if trade_buy_amount == '0' or not can_be_float(
+                                trade_buy_amount
+                        ) or trade_buy_price_in_usd == 0:
+                            trade_amount_in_usd = 0
+                        else:
+                            trade_amount_in_usd = float(
+                                trade_buy_amount) * trade_buy_price_in_usd
                     else:
                         trade_amount_in_usd = float(
-                            trade_buy_amount) * trade_buy_price_in_usd
+                            trade_sell_amount) * trade_sell_price_in_usd
                 else:
-                    trade_amount_in_usd = float(
-                        trade_sell_amount) * trade_sell_price_in_usd
+                    trade_amount_in_usd = float(trade_buy_amount_in_usd)
             else:
-                trade_amount_in_usd = float(trade_buy_amount_in_usd)
-        else:
-            trade_amount_in_usd = float(trade_sell_amount_in_usd)
+                trade_amount_in_usd = float(trade_sell_amount_in_usd)
 
-        edge_key = (trade_sell_mint_address, trade_buy_mint_address)
+            edge_key = trade_sell_mint_address + '-' + trade_buy_mint_address
 
-        if edge_key not in graph_data['edges']:
-            graph_data['edges'][edge_key] = trade_amount_in_usd
-        else:
-            graph_data['edges'][edge_key] += trade_amount_in_usd
+            if edge_key not in graph_data['edges']:
+                graph_data['edges'][edge_key] = trade_amount_in_usd
+            else:
+                graph_data['edges'][edge_key] += trade_amount_in_usd
+
+        saved_graph_data_file_path = f"graph_data_{current_datetime}.json"
+
+        save_json_file(saved_graph_data_file_path, graph_data)
+
+    else:
+        print("\nMode: {}".format(mode))
+        print("File Path to the Saved Graph Data: {}".format(file_path))
+        print("Minimum Volume Threshold: {}".format(volume_threshold))
+
+        if file_path in ['', None]:
+            print(
+                "\nPlease provide the file path to load the graph data data in PLOT mode.\n"
+            )
+            sys.exit(1)
+
+        graph_data = load_json_file(file_path)
+
+    plot_nodes_edges_graph(graph_data)
+
+    # app.run_server(debug=True)
 
 # Nodes and Edges Data Structure
 
