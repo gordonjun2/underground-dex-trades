@@ -9,10 +9,10 @@ import urllib3
 import time
 import argparse
 import sys
+import copy
 from itertools import groupby
 from utils import *
 import dexscreener
-import vybe_network
 from config import (BITQUERY_CLIENT_ID, BITQUERY_CLIENT_SECRET,
                     BITQUERY_V1_API_KEY, API_VERSION, API_VERSION_URL_MAP,
                     EXCLUDED_MINT_ADDRESSES, variables)
@@ -363,8 +363,8 @@ def process_dex_trades_data(dex_trades_data):
             summarized_trade = {
                 'Block': transaction_block,
                 'Trade': {
-                    'Sell': first_transaction_trade['Sell'],
-                    'Buy': last_transaction_trade['Buy']
+                    'Sell': copy.deepcopy(first_transaction_trade['Sell']),
+                    'Buy': copy.deepcopy(last_transaction_trade['Buy'])
                 },
                 'Transaction': transaction_transaction
             }
@@ -456,6 +456,7 @@ if __name__ == "__main__":
     unique_signatures = set()
     combined_dex_trades_data = []
     remaining_mint_addresses = set()
+    graph_data = {'nodes': {}, 'edges': {}}
     start_time = time.time()
 
     print('\n')
@@ -489,19 +490,14 @@ if __name__ == "__main__":
             mint_address, max_node_depth)
         total_no_of_unique_mint_addresses = len(unique_mint_addresses)
 
-        print('\nNo. of unique mint addresses retrieved: {}'.format(
-            total_no_of_unique_mint_addresses))
+        print(
+            '\nNo. of unprocessed unique mint addresses retrieved: {}'.format(
+                total_no_of_unique_mint_addresses))
 
         print('\nNo. of unique signatures retrieved: {}'.format(
             len(unique_signatures)))
 
         get_dex_trades_data(unique_signatures)
-
-        print('\nNo. of processed DEX Trades data retrieved: {}'.format(
-            len(combined_dex_trades_data)))
-
-        print('\nTotal time taken to query: {:.2f} seconds\n'.format(
-            time.time() - start_time))
 
     elif mode == 'INPUT':
 
@@ -520,8 +516,9 @@ if __name__ == "__main__":
             EXCLUDED_MINT_ADDRESSES)
         total_no_of_unique_mint_addresses = len(unique_mint_addresses)
 
-        print('\nNo. of unique mint addresses retrieved: {}'.format(
-            total_no_of_unique_mint_addresses))
+        print(
+            '\nNo. of unprocessed unique mint addresses retrieved: {}'.format(
+                total_no_of_unique_mint_addresses))
 
         saved_unique_signatures_file_path = f"unique_signatures_INPUT_{current_datetime}.json"
         saved_trades_file_path = f"combined_dex_trades_data_INPUT_{current_datetime}.json"
@@ -546,12 +543,6 @@ if __name__ == "__main__":
 
         get_dex_trades_data(unique_signatures)
 
-        print('\nNo. of processed DEX Trades data retrieved: {}'.format(
-            len(combined_dex_trades_data)))
-
-        print('\nTotal time taken to query: {:.2f} seconds\n'.format(
-            time.time() - start_time))
-
     elif mode == 'LOAD_SIGNATURES':
 
         print("\nMode: {}".format(mode))
@@ -573,12 +564,6 @@ if __name__ == "__main__":
         saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_LOAD_{current_datetime}.json"
 
         get_dex_trades_data(unique_signatures)
-
-        print('\nNo. of processed DEX Trades data retrieved: {}'.format(
-            len(combined_dex_trades_data)))
-
-        print('\nTotal time taken to query: {:.2f} seconds\n'.format(
-            time.time() - start_time))
 
     else:
 
@@ -602,29 +587,106 @@ if __name__ == "__main__":
         combined_dex_trades_data = load_json_file(file_path)
         remaining_mint_addresses = load_json_file(addresses_file_path)
 
-        print('\nNo. of processed DEX Trades data retrieved: {}'.format(
-            len(combined_dex_trades_data)))
+    print('\nNo. of processed DEX Trades data retrieved: {}'.format(
+        len(combined_dex_trades_data)))
 
-        print(
-            '\nTotal time taken to load: {:.2f} seconds\n'.format(time.time() -
-                                                                  start_time))
+    print('\nNo. of processed unique mint addresses retrieved: {}'.format(
+        len(remaining_mint_addresses)))
 
-    token_details_dict = dexscreener.get_token_details(
+    extra_token_details_dict = dexscreener.get_token_details(
         list(remaining_mint_addresses))
+
+    print('\nTotal time taken to query: {:.2f} seconds'.format(time.time() -
+                                                               start_time))
+
+    for dex_trade in combined_dex_trades_data:
+        trade_sell = dex_trade['Trade']['Sell']
+        trade_buy = dex_trade['Trade']['Buy']
+
+        trade_sell_mint_address = trade_sell['Currency']['MintAddress']
+        trade_buy_mint_address = trade_buy['Currency']['MintAddress']
+
+        for mint_address in [trade_sell_mint_address, trade_buy_mint_address]:
+            if mint_address not in graph_data['nodes']:
+                extra_token_details = extra_token_details_dict.get(
+                    mint_address, {})
+
+                token_website_detail = extra_token_details.get('info', {}).get(
+                    'websites', [])
+                if token_website_detail:
+                    token_website = token_website_detail[0].get('url', '')
+                else:
+                    token_website = ''
+
+                token_telegram = ''
+                token_twitter = ''
+                token_socials_detail = extra_token_details.get('info', {}).get(
+                    'socials', [])
+                for token_social in token_socials_detail:
+                    if token_social['type'] == 'telegram':
+                        token_telegram = token_social.get('url', '')
+                    elif token_social['type'] == 'twitter':
+                        token_twitter = token_social.get('url', '')
+
+                graph_data['nodes'][mint_address] = {
+                    'mint_address': mint_address,
+                    'name': trade_sell['Currency']['Name'],
+                    'symbol': trade_sell['Currency']['Symbol'],
+                    'volume': extra_token_details.get('volume', {}),
+                    'price_change': extra_token_details.get('priceChange', {}),
+                    'liquidity': extra_token_details.get('liquidity', {}),
+                    'fdv': extra_token_details.get('fdv', 0),
+                    'website': token_website,
+                    'telegram': token_telegram,
+                    'twitter': token_twitter
+                }
+
+        trade_sell_amount_in_usd = trade_sell['AmountInUSD']
+        if trade_sell_amount_in_usd == '0' or not can_be_float(
+                trade_sell_amount_in_usd):
+            trade_buy_amount_in_usd = trade_buy['AmountInUSD']
+            if trade_buy_amount_in_usd == '0' or not can_be_float(
+                    trade_buy_amount_in_usd):
+                trade_sell_amount = trade_sell['Amount']
+                trade_sell_price_in_usd = trade_sell['PriceInUSD']
+                if trade_sell_amount == '0' or not can_be_float(
+                        trade_sell_amount) or trade_sell_price_in_usd == 0:
+                    trade_buy_amount = trade_buy['Amount']
+                    trade_buy_price_in_usd = trade_buy['PriceInUSD']
+                    if trade_buy_amount == '0' or not can_be_float(
+                            trade_buy_amount) or trade_buy_price_in_usd == 0:
+                        trade_amount_in_usd = 0
+                    else:
+                        trade_amount_in_usd = float(
+                            trade_buy_amount) * trade_buy_price_in_usd
+                else:
+                    trade_amount_in_usd = float(
+                        trade_sell_amount) * trade_sell_price_in_usd
+            else:
+                trade_amount_in_usd = float(trade_buy_amount_in_usd)
+        else:
+            trade_amount_in_usd = float(trade_sell_amount_in_usd)
+
+        edge_key = (trade_sell_mint_address, trade_buy_mint_address)
+
+        if edge_key not in graph_data['edges']:
+            graph_data['edges'][edge_key] = trade_amount_in_usd
+        else:
+            graph_data['edges'][edge_key] += trade_amount_in_usd
 
 # Nodes and Edges Data Structure
 
 # graph = {
 #     'nodes': {
-#         'A': {'name': 'Node A', 'value': 1},
-#         'B': {'name': 'Node B', 'value': 2},
-#         'C': {'name': 'Node C', 'value': 3},
-#         'D': {'name': 'Node D', 'value': 4},
+#         'A': {'name': 'Node A', 'index': 1, 'website': 'www.google.com'},
+#         'B': {'name': 'Node B', 'index': 2, 'website': 'www.youtube.com'},
+#         'C': {'name': 'Node C', 'index': 3, 'website': 'www.bbclan.com'},
+#         'D': {'name': 'Node D', 'index': 4, 'website': 'wwww.netflix.com'},
 #     },
-#     'edges': [
-#         {'source': 'A', 'target': 'B', 'weight': 5},
-#         {'source': 'A', 'target': 'C', 'weight': 3},
-#         {'source': 'B', 'target': 'D', 'weight': 4},
-#         {'source': 'C', 'target': 'D', 'weight': 2}
-#     ]
+#     'edges': {
+#         ('A', 'B'): 5,
+#         ('A', 'C'): 3,
+#         ('B', 'A'): 4,
+#         ('C', 'D'): 8
+#     }
 # }

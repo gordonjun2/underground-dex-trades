@@ -3,12 +3,13 @@ import time
 
 
 def get_token_details(mint_addresses,
-                      no_of_tokens_per_batch=30,
+                      no_of_tokens_per_batch=1,
                       max_retries=5,
                       retry_after=10):
 
     token_details_dict = {}
     total_mint_addresses = len(mint_addresses)
+    count = 1
 
     for i in range(0, total_mint_addresses, no_of_tokens_per_batch):
 
@@ -43,6 +44,7 @@ def get_token_details(mint_addresses,
                 token_details = response.json().get('pairs', [])
 
                 for token in token_details:
+                    count += 1
                     mint_address = token.get('baseToken',
                                              {}).get('address', '')
 

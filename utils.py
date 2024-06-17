@@ -25,3 +25,11 @@ def load_txt_file_to_list(file_path):
     except FileNotFoundError:
         print("\nThe file not found or is invalid.\n")
         return []
+
+
+def can_be_float(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
