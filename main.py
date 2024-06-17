@@ -525,6 +525,7 @@ if __name__ == "__main__":
 
         saved_unique_signatures_file_path = f"unique_signatures_INPUT_{current_datetime}.json"
         saved_trades_file_path = f"combined_dex_trades_data_INPUT_{current_datetime}.json"
+        saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_INPUT_{current_datetime}.json"
 
         mint_address_count = 1
 
@@ -569,6 +570,7 @@ if __name__ == "__main__":
             len(unique_signatures)))
 
         saved_trades_file_path = f"combined_dex_trades_data_LOAD_{current_datetime}.json"
+        saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_LOAD_{current_datetime}.json"
 
         get_dex_trades_data(unique_signatures)
 
@@ -582,11 +584,18 @@ if __name__ == "__main__":
 
         print("\nMode: {}".format(mode))
         print("File Path to the Saved DEX Trades Data: {}".format(file_path))
+        print("File Path to the Saved Remaining Mint Addresses: {}".format(
+            addresses_file_path))
         print("Minimum Volume Threshold: {}".format(volume_threshold))
 
         if file_path in ['', None]:
             print(
                 "\nPlease provide the file path to load the DEX trades data in LOAD_TRADES mode.\n"
+            )
+            sys.exit(1)
+        elif addresses_file_path in ['', None]:
+            print(
+                "\nPlease provide the file path to load the remaining mint addresses in LOAD_TRADES mode.\n"
             )
             sys.exit(1)
 
