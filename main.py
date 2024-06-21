@@ -1,11 +1,11 @@
 import requests
+import os
 import json
 import pytz
 from datetime import datetime, timedelta
 from tzlocal import get_localzone
 from collections import deque
-from urllib3.exceptions import InsecureRequestWarning, NotOpenSSLWarning
-import urllib3
+import warnings
 import time
 import argparse
 import sys
@@ -14,13 +14,11 @@ from itertools import groupby
 from utils import *
 import dexscreener
 from plot_graph import plot_nodes_edges_graph
-# from dash_app import app
 from config import (BITQUERY_CLIENT_ID, BITQUERY_CLIENT_SECRET,
                     BITQUERY_V1_API_KEY, API_VERSION, API_VERSION_URL_MAP,
                     EXCLUDED_MINT_ADDRESSES, variables)
 
-urllib3.disable_warnings(InsecureRequestWarning)
-urllib3.disable_warnings(NotOpenSSLWarning)
+warnings.filterwarnings("ignore", module="urllib3")
 
 ### Functions ###
 
@@ -429,7 +427,7 @@ if __name__ == "__main__":
         type=float,
         default=0,
         help=
-        "The minimum volume threshold for the DEX trades data to be displayed for graph plot. Default is 0."
+        "The minimum volume threshold in USD for the DEX trades data to be displayed for graph plot. Default is 0."
     )
     args = parser.parse_args()
 
@@ -463,6 +461,10 @@ if __name__ == "__main__":
     graph_data = {'nodes': {}, 'edges': {}}
     start_time = time.time()
 
+    saved_data_folder_file_path = './saved_data'
+    if not os.path.exists(saved_data_folder_file_path):
+        os.makedirs(saved_data_folder_file_path)
+
     print('\n')
 
     url = get_api_base_url()
@@ -479,7 +481,8 @@ if __name__ == "__main__":
             print("\nMode: {}".format(mode))
             print("First Mint Address: {}".format(mint_address))
             print("Max Node Depth: {}".format(max_node_depth))
-            print("Minimum Volume Threshold: {}".format(volume_threshold))
+            print(
+                "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
             if mint_address in ['', None]:
                 print(
@@ -487,10 +490,10 @@ if __name__ == "__main__":
                 )
                 sys.exit(1)
 
-            saved_unique_mint_addresses_file_path = f"unique_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
-            saved_unique_signatures_file_path = f"unique_signatures_BFS_{mint_address}_{current_datetime}.json"
-            saved_trades_file_path = f"combined_dex_trades_data_BFS_{mint_address}_{current_datetime}.json"
-            saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
+            saved_unique_mint_addresses_file_path = f"{saved_data_folder_file_path}/unique_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
+            saved_unique_signatures_file_path = f"{saved_data_folder_file_path}/unique_signatures_BFS_{mint_address}_{current_datetime}.json"
+            saved_trades_file_path = f"{saved_data_folder_file_path}/combined_dex_trades_data_BFS_{mint_address}_{current_datetime}.json"
+            saved_remaining_mint_addresses_file_path = f"{saved_data_folder_file_path}/remaining_mint_addresses_BFS_{mint_address}_{current_datetime}.json"
 
             unique_mint_addresses = bfs_accumulate_unique_signatures(
                 mint_address, max_node_depth)
@@ -509,7 +512,8 @@ if __name__ == "__main__":
             print("\nMode: {}".format(mode))
             print("File Path to the List of Mint Addresses: {}".format(
                 file_path))
-            print("Minimum Volume Threshold: {}".format(volume_threshold))
+            print(
+                "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
             if file_path in ['', None]:
                 print(
@@ -525,9 +529,9 @@ if __name__ == "__main__":
             print('\nNo. of unprocessed unique mint addresses retrieved: {}'.
                   format(total_no_of_unique_mint_addresses))
 
-            saved_unique_signatures_file_path = f"unique_signatures_INPUT_{current_datetime}.json"
-            saved_trades_file_path = f"combined_dex_trades_data_INPUT_{current_datetime}.json"
-            saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_INPUT_{current_datetime}.json"
+            saved_unique_signatures_file_path = f"{saved_data_folder_file_path}/unique_signatures_INPUT_{current_datetime}.json"
+            saved_trades_file_path = f"{saved_data_folder_file_path}/combined_dex_trades_data_INPUT_{current_datetime}.json"
+            saved_remaining_mint_addresses_file_path = f"{saved_data_folder_file_path}/remaining_mint_addresses_INPUT_{current_datetime}.json"
 
             mint_address_count = 1
 
@@ -553,7 +557,8 @@ if __name__ == "__main__":
             print("\nMode: {}".format(mode))
             print("File Path to the Saved Unique Signatures: {}".format(
                 file_path))
-            print("Minimum Volume Threshold: {}".format(volume_threshold))
+            print(
+                "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
             if file_path in ['', None]:
                 print(
@@ -566,8 +571,8 @@ if __name__ == "__main__":
             print('\nNo. of unique signatures retrieved: {}'.format(
                 len(unique_signatures)))
 
-            saved_trades_file_path = f"combined_dex_trades_data_LOAD_{current_datetime}.json"
-            saved_remaining_mint_addresses_file_path = f"remaining_mint_addresses_LOAD_{current_datetime}.json"
+            saved_trades_file_path = f"{saved_data_folder_file_path}/combined_dex_trades_data_LOAD_{current_datetime}.json"
+            saved_remaining_mint_addresses_file_path = f"{saved_data_folder_file_path}/remaining_mint_addresses_LOAD_{current_datetime}.json"
 
             get_dex_trades_data(unique_signatures)
 
@@ -578,7 +583,8 @@ if __name__ == "__main__":
                 "File Path to the Saved DEX Trades Data: {}".format(file_path))
             print("File Path to the Saved Remaining Mint Addresses: {}".format(
                 addresses_file_path))
-            print("Minimum Volume Threshold: {}".format(volume_threshold))
+            print(
+                "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
             if file_path in ['', None]:
                 print(
@@ -600,7 +606,7 @@ if __name__ == "__main__":
         print('\nNo. of processed unique mint addresses retrieved: {}'.format(
             len(remaining_mint_addresses)))
 
-        extra_token_details_dict = dexscreener.get_token_details(
+        token_details_dict = dexscreener.get_token_details(
             list(remaining_mint_addresses))
 
         print(
@@ -618,11 +624,10 @@ if __name__ == "__main__":
                     trade_sell_mint_address, trade_buy_mint_address
             ]:
                 if mint_address not in graph_data['nodes']:
-                    extra_token_details = extra_token_details_dict.get(
-                        mint_address, {})
+                    token_details = token_details_dict.get(mint_address, {})
 
-                    token_website_detail = extra_token_details.get(
-                        'info', {}).get('websites', [])
+                    token_website_detail = token_details.get('info', {}).get(
+                        'websites', [])
                     if token_website_detail:
                         token_website = token_website_detail[0].get('url', '')
                     else:
@@ -630,8 +635,8 @@ if __name__ == "__main__":
 
                     token_telegram = ''
                     token_twitter = ''
-                    token_socials_detail = extra_token_details.get(
-                        'info', {}).get('socials', [])
+                    token_socials_detail = token_details.get('info', {}).get(
+                        'socials', [])
                     for token_social in token_socials_detail:
                         if token_social['type'] == 'telegram':
                             token_telegram = token_social.get('url', '')
@@ -640,13 +645,12 @@ if __name__ == "__main__":
 
                     graph_data['nodes'][mint_address] = {
                         'mint_address': mint_address,
-                        'name': trade_sell['Currency']['Name'],
-                        'symbol': trade_sell['Currency']['Symbol'],
-                        'volume': extra_token_details.get('volume', {}),
-                        'price_change':
-                        extra_token_details.get('priceChange', {}),
-                        'liquidity': extra_token_details.get('liquidity', {}),
-                        'fdv': extra_token_details.get('fdv', 0),
+                        'name': token_details.get('name', ''),
+                        'symbol': token_details.get('symbol', ''),
+                        'volume': token_details.get('volume', {}),
+                        'price_change': token_details.get('priceChange', {}),
+                        'liquidity': token_details.get('liquidity', {}),
+                        'fdv': token_details.get('fdv', 0),
                         'website': token_website,
                         'telegram': token_telegram,
                         'twitter': token_twitter
@@ -679,21 +683,27 @@ if __name__ == "__main__":
             else:
                 trade_amount_in_usd = float(trade_sell_amount_in_usd)
 
-            edge_key = trade_sell_mint_address + '-' + trade_buy_mint_address
+            edge_key_main = trade_sell_mint_address + '-' + trade_buy_mint_address
+            edge_key_reverse = trade_buy_mint_address + '-' + trade_sell_mint_address
 
-            if edge_key not in graph_data['edges']:
-                graph_data['edges'][edge_key] = trade_amount_in_usd
+            if edge_key_main not in graph_data[
+                    'edges'] and edge_key_reverse not in graph_data['edges']:
+                graph_data['edges'][edge_key_main] = trade_amount_in_usd
             else:
-                graph_data['edges'][edge_key] += trade_amount_in_usd
+                if edge_key_main in graph_data['edges']:
+                    graph_data['edges'][edge_key_main] += trade_amount_in_usd
+                else:
+                    graph_data['edges'][
+                        edge_key_reverse] -= trade_amount_in_usd
 
-        saved_graph_data_file_path = f"graph_data_{current_datetime}.json"
+        saved_graph_data_file_path = f"{saved_data_folder_file_path}/graph_data_{current_datetime}.json"
 
         save_json_file(saved_graph_data_file_path, graph_data)
 
     else:
         print("\nMode: {}".format(mode))
         print("File Path to the Saved Graph Data: {}".format(file_path))
-        print("Minimum Volume Threshold: {}".format(volume_threshold))
+        print("Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
         if file_path in ['', None]:
             print(
@@ -703,9 +713,7 @@ if __name__ == "__main__":
 
         graph_data = load_json_file(file_path)
 
-    plot_nodes_edges_graph(graph_data)
-
-    # app.run_server(debug=True)
+    plot_nodes_edges_graph(graph_data, volume_threshold)
 
 # Nodes and Edges Data Structure
 

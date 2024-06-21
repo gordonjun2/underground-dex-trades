@@ -1,10 +1,8 @@
 import requests
 import time
-from urllib3.exceptions import InsecureRequestWarning, NotOpenSSLWarning
-import urllib3
+import warnings
 
-urllib3.disable_warnings(InsecureRequestWarning)
-urllib3.disable_warnings(NotOpenSSLWarning)
+warnings.filterwarnings("ignore", module="urllib3")
 
 
 def get_token_details(mint_addresses,
@@ -62,6 +60,9 @@ def get_token_details(mint_addresses,
                         token_details_dict[mint_address] = {
                             'chainId': token.get('chainId', ''),
                             'dexId': token.get('dexId', ''),
+                            'name': token.get('baseToken', {}).get('name', ''),
+                            'symbol': token.get('baseToken',
+                                                {}).get('symbol', ''),
                             'volume': token.get('volume', {}),
                             'priceChange': token.get('priceChange', {}),
                             'liquidity': token.get('liquidity', {}),
