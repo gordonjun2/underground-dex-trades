@@ -163,7 +163,6 @@ cython_debug/
 
 # Saved data
 *.json
-*.txt
 
 # Private keys
 private.ini

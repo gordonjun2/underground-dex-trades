@@ -1,0 +1,10 @@
+requests
+pytz
+tzlocal
+pandas
+networkx
+plotly
+dash
+scipy
+urllib3==1.26.15
+matplotlib

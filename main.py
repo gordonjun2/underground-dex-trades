@@ -400,13 +400,15 @@ if __name__ == "__main__":
         '-a',
         '--address',
         type=str,
-        help="The first mint address to query. REQURING for BFS mode.")
+        help="The first mint address to query. REQURED for BFS mode.")
     parser.add_argument(
         '-d',
         '--depth',
         type=int,
         default=2,
-        help="The depth to which the function should traverse. Default is 2.")
+        help=
+        "The depth to which the function should traverse. Default is 2. REQURED for BFS mode."
+    )
     parser.add_argument(
         '-f',
         '--file',
