@@ -62,9 +62,11 @@ def weight_to_color(weight,
         return mcolors.to_hex(cmap(norm(weight)))
 
 
-def create_plotly_graph(G, pos, edge_weights):
-    edge_x = []
-    edge_y = []
+def create_plotly_graph(G, pos, edge_weights, volume_threshold=0):
+    edge_x_1 = []
+    edge_y_1 = []
+    edge_x_2 = []
+    edge_y_2 = []
 
     edge_middle_x = []
     edge_middle_y = []
@@ -99,8 +101,12 @@ def create_plotly_graph(G, pos, edge_weights):
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+        midpoint_x = (x0 + x1) / 2
+        midpoint_y = (y0 + y1) / 2
+        edge_x_1.extend([x0, midpoint_x, None])
+        edge_y_1.extend([y0, midpoint_y, None])
+        edge_x_2.extend([midpoint_x, x1, None])
+        edge_y_2.extend([midpoint_y, y1, None])
 
         middle_x, middle_y = make_middle_points(x0, x1, y0, y1,
                                                 EDGE_POINTS_QUANTITY)
@@ -115,6 +121,22 @@ def create_plotly_graph(G, pos, edge_weights):
 
         arrow_color = weight_to_color(G.edges[edge]['weight'], min_weight,
                                       max_weight)
+
+        annotations.append(
+            dict(ax=x0,
+                 ay=y0,
+                 x=midpoint_x,
+                 y=midpoint_y,
+                 xref='x',
+                 yref='y',
+                 axref='x',
+                 ayref='y',
+                 showarrow=True,
+                 arrowhead=4,
+                 arrowsize=2,
+                 arrowwidth=2,
+                 arrowcolor=arrow_color))
+
         annotations.append(
             dict(ax=x0,
                  ay=y0,
@@ -125,7 +147,7 @@ def create_plotly_graph(G, pos, edge_weights):
                  axref='x',
                  ayref='y',
                  showarrow=True,
-                 arrowhead=1,
+                 arrowhead=0,
                  arrowsize=2,
                  arrowwidth=2,
                  arrowcolor=arrow_color))
@@ -140,15 +162,22 @@ def create_plotly_graph(G, pos, edge_weights):
         textfont=dict(size=10),
         hovertext=node_hover_text,
         marker=dict(
+            color='firebrick',
             size=node_size,  # Node size based on normalized 'fdv'
             sizemode='area',
             line_width=2))
 
-    edge_trace = go.Scatter(x=edge_x,
-                            y=edge_y,
-                            line=dict(width=3),
-                            hoverinfo='text',
-                            mode='lines')
+    edge_trace_1 = go.Scatter(x=edge_x_1,
+                              y=edge_y_1,
+                              line=dict(width=3, color='rgba(0,0,0,0)'),
+                              hoverinfo='text',
+                              mode='lines')
+
+    edge_trace_2 = go.Scatter(x=edge_x_2,
+                              y=edge_y_2,
+                              line=dict(width=3, color='rgba(0,0,0,0)'),
+                              hoverinfo='text',
+                              mode='lines')
 
     mnode_trace = go.Scatter(x=edge_middle_x,
                              y=edge_middle_y,
@@ -177,15 +206,19 @@ def create_plotly_graph(G, pos, edge_weights):
         hoverinfo='none')
 
     fig = go.Figure(
-        data=[edge_trace, node_trace, mnode_trace, colorbar_trace],
+        data=[
+            edge_trace_1, edge_trace_2, node_trace, mnode_trace, colorbar_trace
+        ],
         layout=go.Layout(
             title=dict(
-                text='<br>Underground DEX Trades',
-                font=dict(size=24,
+                text=
+                '<br>Underground DEX Trades<br><sup><i>Minimum Volume Threshold: {:.2f} USD</i></sup>'
+                .format(volume_threshold),
+                font=dict(size=20,
                           color='black',
                           family='Arial',
                           weight='bold'),  # Set the font weight to bold
-                y=1  # Adjust this value to shift the title upwards
+                y=0.95  # Adjust this value to shift the title upwards
             ),
             showlegend=False,
             hovermode='closest',
@@ -205,9 +238,7 @@ def plot_nodes_edges_graph(graph_data, volume_threshold=0):
     edges = graph_data['edges']
 
     edge_weights = []
-
-    for node, attributes in nodes.items():
-        G.add_node(node, **attributes)
+    nodes_above_threshold = set()
 
     for edge, weight in edges.items():
         source, target = edge.split('-')
@@ -223,9 +254,15 @@ def plot_nodes_edges_graph(graph_data, volume_threshold=0):
         if weight < volume_threshold:
             continue
 
+        nodes_above_threshold.add(source)
+        nodes_above_threshold.add(target)
         edge_weights.append(weight)
 
         G.add_edge(source, target, weight=weight)
+
+    for node, attributes in nodes.items():
+        if node in nodes_above_threshold:
+            G.add_node(node, **attributes)
 
     pos = nx.shell_layout(
         G,
@@ -234,5 +271,5 @@ def plot_nodes_edges_graph(graph_data, volume_threshold=0):
         scale=1,
         center=(0, 0))
 
-    fig = create_plotly_graph(G, pos, edge_weights)
+    fig = create_plotly_graph(G, pos, edge_weights, volume_threshold)
     fig.show()

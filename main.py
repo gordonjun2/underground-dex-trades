@@ -626,6 +626,9 @@ if __name__ == "__main__":
                 if mint_address not in graph_data['nodes']:
                     token_details = token_details_dict.get(mint_address, {})
 
+                    if not token_details:
+                        continue
+
                     token_website_detail = token_details.get('info', {}).get(
                         'websites', [])
                     if token_website_detail:
@@ -655,6 +658,11 @@ if __name__ == "__main__":
                         'telegram': token_telegram,
                         'twitter': token_twitter
                     }
+
+            if trade_sell_mint_address not in graph_data[
+                    'nodes'] or trade_buy_mint_address not in graph_data[
+                        'nodes']:
+                continue
 
             trade_sell_amount_in_usd = trade_sell['AmountInUSD']
             if trade_sell_amount_in_usd == '0' or not can_be_float(

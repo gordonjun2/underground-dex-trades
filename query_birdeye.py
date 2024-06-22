@@ -1,4 +1,5 @@
 import requests
+import os
 import datetime
 from urllib3.exceptions import InsecureRequestWarning
 import urllib3
@@ -31,7 +32,6 @@ response = requests.post(url, headers=headers, json=payload, verify=False)
 
 if response.status_code == 200:
     print("\nRequest successful!")
-    tokens_data = response.json().get('data', {}).get('items', [])
 
     try:
         tokens_data = response.json().get('data', {}).get('items', [])
@@ -47,7 +47,11 @@ else:
     raise Exception('\nQuery failed and return code is {}.'.format(
         response.status_code))
 
+saved_data_folder_file_path = './saved_data'
+if not os.path.exists(saved_data_folder_file_path):
+    os.makedirs(saved_data_folder_file_path)
+
 current_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-file_name = f"birdeye_highest_24hr_volume_mint_addresses_{current_datetime}.json"
+file_name = f"{saved_data_folder_file_path}/birdeye_highest_24hr_volume_mint_addresses_{current_datetime}.json"
 
 save_json_file(file_name, mint_addresses)

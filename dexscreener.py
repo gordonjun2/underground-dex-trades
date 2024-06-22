@@ -5,10 +5,7 @@ import warnings
 warnings.filterwarnings("ignore", module="urllib3")
 
 
-def get_token_details(mint_addresses,
-                      no_of_tokens_per_batch=1,
-                      max_retries=5,
-                      retry_after=10):
+def get_token_details(mint_addresses, max_retries=5, retry_after=10):
 
     token_details_dict = {}
     total_mint_addresses = len(mint_addresses)
@@ -16,23 +13,15 @@ def get_token_details(mint_addresses,
 
     print('\n')
 
-    for i in range(0, total_mint_addresses, no_of_tokens_per_batch):
+    for i in range(0, total_mint_addresses):
 
-        start_number = i + 1
+        print('Querying token details {} out of {}'.format(
+            i + 1, total_mint_addresses))
 
-        if i + no_of_tokens_per_batch > total_mint_addresses:
-            end_number = total_mint_addresses
-        else:
-            end_number = i + no_of_tokens_per_batch
-
-        print('Querying token details {} - {} out of {}'.format(
-            start_number, end_number, total_mint_addresses))
-
-        mint_addresses_batch = mint_addresses[i:i + no_of_tokens_per_batch]
-        mint_addresses_batch_comma_separated = ','.join(mint_addresses_batch)
+        mint_address = mint_addresses[i]
 
         url = "https://api.dexscreener.com/latest/dex/tokens/{}".format(
-            mint_addresses_batch_comma_separated)
+            mint_address)
 
         headers = {
             "accept": "application/json",
@@ -48,27 +37,43 @@ def get_token_details(mint_addresses,
 
                 token_details = response.json().get('pairs', [])
 
-                for token in token_details:
-                    count += 1
-                    mint_address = token.get('baseToken',
-                                             {}).get('address', '')
+                if not token_details:
 
-                    if not mint_address:
-                        continue
+                    print(
+                        'Token details for mint address {} cannot be found. Skipping...'
+                        .format(mint_address))
 
-                    if mint_address not in token_details_dict:
-                        token_details_dict[mint_address] = {
-                            'chainId': token.get('chainId', ''),
-                            'dexId': token.get('dexId', ''),
-                            'name': token.get('baseToken', {}).get('name', ''),
-                            'symbol': token.get('baseToken',
-                                                {}).get('symbol', ''),
-                            'volume': token.get('volume', {}),
-                            'priceChange': token.get('priceChange', {}),
-                            'liquidity': token.get('liquidity', {}),
-                            'fdv': token.get('fdv', 0),
-                            'info': token.get('info', {}),
-                        }
+                else:
+
+                    for token in token_details:
+                        count += 1
+                        mint_address = token.get('baseToken',
+                                                 {}).get('address', '')
+
+                        if not mint_address:
+                            continue
+
+                        if mint_address not in token_details_dict:
+                            token_details_dict[mint_address] = {
+                                'chainId':
+                                token.get('chainId', ''),
+                                'dexId':
+                                token.get('dexId', ''),
+                                'name':
+                                token.get('baseToken', {}).get('name', ''),
+                                'symbol':
+                                token.get('baseToken', {}).get('symbol', ''),
+                                'volume':
+                                token.get('volume', {}),
+                                'priceChange':
+                                token.get('priceChange', {}),
+                                'liquidity':
+                                token.get('liquidity', {}),
+                                'fdv':
+                                token.get('fdv', 0),
+                                'info':
+                                token.get('info', {}),
+                            }
 
                 break
 
@@ -77,7 +82,7 @@ def get_token_details(mint_addresses,
 
                 print(
                     'Query failed and return code is {}. Retrying ({}) after {} seconds...'
-                    .format(response.status_code))
+                    .format(response.status_code, retry_count, retry_after))
 
                 time.sleep(retry_after)
 
@@ -86,9 +91,3 @@ def get_token_details(mint_addresses,
             break
 
     return token_details_dict
-
-
-# get_token_details([
-#     'DxtssVdyYe4wWE5f5zEgx2NqtDFbVL3ABGY62WCycHWg',
-#     '3J5QaP1zJN9yXE7jr5XJa3Lq2TyGHSHu2wssK7N1Aw4p'
-# ])
