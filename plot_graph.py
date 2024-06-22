@@ -284,12 +284,12 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
         if node in filtered_nodes:
             G.add_node(node, **attributes)
 
-    pos = nx.shell_layout(
-        G,
-        nlist=None,  # List of lists of nodes to place in each shell
-        rotate=None,
-        scale=1,
-        center=(0, 0))
+    pos = nx.spiral_layout(G,
+                           scale=1,
+                           center=None,
+                           dim=2,
+                           resolution=0.8,
+                           equidistant=True)
 
     fig = create_plotly_graph(G, pos, edge_weights, volume_threshold,
                               earliest_local_block_time,
