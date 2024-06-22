@@ -62,7 +62,9 @@ def weight_to_color(weight,
         return mcolors.to_hex(cmap(norm(weight)))
 
 
-def create_plotly_graph(G, pos, edge_weights, volume_threshold=0):
+def create_plotly_graph(G, pos, edge_weights, volume_threshold,
+                        earliest_local_block_time, latest_local_block_time,
+                        is_filtered):
     edge_x_1 = []
     edge_y_1 = []
     edge_x_2 = []
@@ -156,7 +158,10 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold=0):
         x=node_x,
         y=node_y,
         mode='markers+text',
-        text=[G.nodes[node]['name'] for node in G.nodes()],
+        text=[
+            G.nodes[node]['name'] + ' (' + G.nodes[node]['symbol'] + ')'
+            for node in G.nodes()
+        ],
         textposition="top center",
         hoverinfo='text',
         textfont=dict(size=10),
@@ -212,17 +217,22 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold=0):
         layout=go.Layout(
             title=dict(
                 text=
-                '<br>Underground DEX Trades<br><sup><i>Minimum Volume Threshold: {:.2f} USD</i></sup>'
-                .format(volume_threshold),
+                ('<span style="font-size:24px;font-weight:bold;color:black;text-decoration:underline;">Underground DEX Trades</span><br>'
+                 '<span style="font-size:16px;color:black;"><i>Transactions from {} to {}</i></span><br>'
+                 '<span style="font-size:16px;color:black;"><i>Minimum Volume Threshold: {:.2f} USD</i></span><br>'
+                 '<span style="font-size:16px;color:black;"><i>Filtered: {}</i></span><br>'
+                 ).format(earliest_local_block_time, latest_local_block_time,
+                          volume_threshold, is_filtered),
                 font=dict(size=20,
                           color='black',
                           family='Arial',
                           weight='bold'),  # Set the font weight to bold
-                y=0.95  # Adjust this value to shift the title upwards
+                y=0.95,  # Adjust this value to shift the title upwards
+                x=0.03  # Adjust this value to shift the title upwards
             ),
             showlegend=False,
             hovermode='closest',
-            margin=dict(b=20, l=5, r=5, t=40),
+            margin=dict(b=10, l=5, r=5, t=10),
             annotations=annotations,
             xaxis=dict(showgrid=False, zeroline=False),
             yaxis=dict(showgrid=False, zeroline=False)))
@@ -230,18 +240,28 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold=0):
     return fig
 
 
-def plot_nodes_edges_graph(graph_data, volume_threshold=0):
+def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
+                           volume_threshold, is_filtered):
 
     G = nx.DiGraph()
 
-    nodes = graph_data['nodes']
-    edges = graph_data['edges']
+    nodes = graph_data.get('nodes', {})
+    edges = graph_data.get('edges', {})
+    transaction_window = graph_data.get('transaction_window', {})
+    earliest_local_block_time = transaction_window.get(
+        'earliest_local_block_time', 'Not Recorded')
+    latest_local_block_time = transaction_window.get('latest_local_block_time',
+                                                     'Not Recorded')
 
     edge_weights = []
-    nodes_above_threshold = set()
+    filtered_nodes = set()
 
     for edge, weight in edges.items():
         source, target = edge.split('-')
+
+        if plot_filtered_addresses:
+            if source not in plot_filtered_addresses and target not in plot_filtered_addresses:
+                continue
 
         if weight == 0:
             continue
@@ -254,14 +274,14 @@ def plot_nodes_edges_graph(graph_data, volume_threshold=0):
         if weight < volume_threshold:
             continue
 
-        nodes_above_threshold.add(source)
-        nodes_above_threshold.add(target)
+        filtered_nodes.add(source)
+        filtered_nodes.add(target)
         edge_weights.append(weight)
 
         G.add_edge(source, target, weight=weight)
 
     for node, attributes in nodes.items():
-        if node in nodes_above_threshold:
+        if node in filtered_nodes:
             G.add_node(node, **attributes)
 
     pos = nx.shell_layout(
@@ -271,5 +291,7 @@ def plot_nodes_edges_graph(graph_data, volume_threshold=0):
         scale=1,
         center=(0, 0))
 
-    fig = create_plotly_graph(G, pos, edge_weights, volume_threshold)
+    fig = create_plotly_graph(G, pos, edge_weights, volume_threshold,
+                              earliest_local_block_time,
+                              latest_local_block_time, is_filtered)
     fig.show()

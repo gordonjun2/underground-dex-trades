@@ -243,7 +243,7 @@ def bfs_accumulate_unique_signatures(mint_address, max_node_depth):
 
 
 def get_dex_trades_data(unique_signatures,
-                        max_no_of_signatures_per_batch=10000):
+                        max_no_of_signatures_per_batch=15000):
 
     unique_signatures_list = list(unique_signatures)
     total_unique_signatures = len(unique_signatures)
@@ -414,7 +414,7 @@ if __name__ == "__main__":
         '--file',
         type=str,
         help=
-        "The file to load the JSON that contains the list of mint addresses, the list of unique signatires, or the DEX trades data. REQURED for INPUT, LOAD_SIGNATURES, and LOAD_TRADES mode."
+        "The file to load the JSON that contains the list of mint addresses, the list of unique signatires, or the DEX trades data. REQURED for INPUT, LOAD_SIGNATURES, LOAD_TRADES, PLOT mode."
     )
     parser.add_argument(
         '-af',
@@ -431,6 +431,22 @@ if __name__ == "__main__":
         help=
         "The minimum volume threshold in USD for the DEX trades data to be displayed for graph plot. Default is 0."
     )
+    parser.add_argument(
+        '-pfn',
+        '--plot_filter_names',
+        type=str,
+        default='',
+        help=
+        "Filter token name and its related token name to be displayed for graph plot. Use comma separator. Use EITHER plot_filter_names or plot_filter_symbols but not both. Eg. 'dogwifhat,nubcat'."
+    )
+    parser.add_argument(
+        '-pfs',
+        '--plot_filter_symbols',
+        type=str,
+        default='',
+        help=
+        "Filter token symbol and its related token symbol to be displayed for graph plot. Use comma separator. Use EITHER plot_filter_names or plot_filter_symbols but not both. Eg. 'WIF,NUB'."
+    )
     args = parser.parse_args()
 
     mode = str(args.mode).upper()
@@ -439,12 +455,29 @@ if __name__ == "__main__":
     file_path = args.file
     addresses_file_path = args.addresses_file
     volume_threshold = args.volume
+    plot_filter_names = args.plot_filter_names
+    plot_filter_symbols = args.plot_filter_symbols
 
     if mode not in ['BFS', 'INPUT', 'LOAD_SIGNATURES', 'LOAD_TRADES', 'PLOT']:
         print(
             "\nMode {} is not supported. Supported modes are BFS, INPUT, LOAD_SIGNATURES, LOAD_TRADES, and PLOT.\n"
             .format(mode))
         sys.exit(1)
+
+    if plot_filter_names and plot_filter_symbols:
+        print(
+            "\nUse EITHER plot_filter_names or plot_filter_symbols but not both.\n"
+        )
+        sys.exit(1)
+    elif plot_filter_names:
+        filter_type = 'NAME'
+    elif plot_filter_symbols:
+        filter_type = 'SYMBOL'
+    else:
+        filter_type = 'NONE'
+
+    # Start time for the script
+    start_time = time.time()
 
     # Get current datetime
     current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -461,7 +494,8 @@ if __name__ == "__main__":
     combined_dex_trades_data = []
     remaining_mint_addresses = set()
     graph_data = {'nodes': {}, 'edges': {}}
-    start_time = time.time()
+    earliest_local_block_time = datetime.max.replace(tzinfo=local_timezone)
+    latest_local_block_time = datetime.min.replace(tzinfo=local_timezone)
 
     saved_data_folder_file_path = './saved_data'
     if not os.path.exists(saved_data_folder_file_path):
@@ -608,107 +642,132 @@ if __name__ == "__main__":
         print('\nNo. of processed unique mint addresses retrieved: {}'.format(
             len(remaining_mint_addresses)))
 
-        token_details_dict = dexscreener.get_token_details(
-            list(remaining_mint_addresses))
+        if combined_dex_trades_data:
 
-        print(
-            '\nTotal time taken to query: {:.2f} seconds'.format(time.time() -
-                                                                 start_time))
+            # token_details_dict = dexscreener.get_token_details(
+            #     list(remaining_mint_addresses))
 
-        for dex_trade in combined_dex_trades_data:
-            trade_sell = dex_trade['Trade']['Sell']
-            trade_buy = dex_trade['Trade']['Buy']
+            token_details_dict = {}
 
-            trade_sell_mint_address = trade_sell['Currency']['MintAddress']
-            trade_buy_mint_address = trade_buy['Currency']['MintAddress']
+            for dex_trade in combined_dex_trades_data:
 
-            for mint_address in [
-                    trade_sell_mint_address, trade_buy_mint_address
-            ]:
-                if mint_address not in graph_data['nodes']:
-                    token_details = token_details_dict.get(mint_address, {})
+                block_time = dex_trade['Block']['Time']
+                local_block_time = convert_utc_to_user_timezone(block_time)
 
-                    if not token_details:
-                        continue
+                if local_block_time < earliest_local_block_time:
+                    earliest_local_block_time = local_block_time
+                if local_block_time > latest_local_block_time:
+                    latest_local_block_time = local_block_time
 
-                    token_website_detail = token_details.get('info', {}).get(
-                        'websites', [])
-                    if token_website_detail:
-                        token_website = token_website_detail[0].get('url', '')
-                    else:
-                        token_website = ''
+                trade_sell = dex_trade['Trade']['Sell']
+                trade_buy = dex_trade['Trade']['Buy']
 
-                    token_telegram = ''
-                    token_twitter = ''
-                    token_socials_detail = token_details.get('info', {}).get(
-                        'socials', [])
-                    for token_social in token_socials_detail:
-                        if token_social['type'] == 'telegram':
-                            token_telegram = token_social.get('url', '')
-                        elif token_social['type'] == 'twitter':
-                            token_twitter = token_social.get('url', '')
+                trade_sell_mint_address = trade_sell['Currency']['MintAddress']
+                trade_buy_mint_address = trade_buy['Currency']['MintAddress']
 
-                    graph_data['nodes'][mint_address] = {
-                        'mint_address': mint_address,
-                        'name': token_details.get('name', ''),
-                        'symbol': token_details.get('symbol', ''),
-                        'volume': token_details.get('volume', {}),
-                        'price_change': token_details.get('priceChange', {}),
-                        'liquidity': token_details.get('liquidity', {}),
-                        'fdv': token_details.get('fdv', 0),
-                        'website': token_website,
-                        'telegram': token_telegram,
-                        'twitter': token_twitter
-                    }
+                for mint_address in [
+                        trade_sell_mint_address, trade_buy_mint_address
+                ]:
+                    if mint_address not in graph_data['nodes']:
+                        token_details = token_details_dict.get(
+                            mint_address, {})
 
-            if trade_sell_mint_address not in graph_data[
-                    'nodes'] or trade_buy_mint_address not in graph_data[
-                        'nodes']:
-                continue
+                        if not token_details:
+                            continue
 
-            trade_sell_amount_in_usd = trade_sell['AmountInUSD']
-            if trade_sell_amount_in_usd == '0' or not can_be_float(
-                    trade_sell_amount_in_usd):
-                trade_buy_amount_in_usd = trade_buy['AmountInUSD']
-                if trade_buy_amount_in_usd == '0' or not can_be_float(
-                        trade_buy_amount_in_usd):
-                    trade_sell_amount = trade_sell['Amount']
-                    trade_sell_price_in_usd = trade_sell['PriceInUSD']
-                    if trade_sell_amount == '0' or not can_be_float(
-                            trade_sell_amount) or trade_sell_price_in_usd == 0:
-                        trade_buy_amount = trade_buy['Amount']
-                        trade_buy_price_in_usd = trade_buy['PriceInUSD']
-                        if trade_buy_amount == '0' or not can_be_float(
-                                trade_buy_amount
-                        ) or trade_buy_price_in_usd == 0:
-                            trade_amount_in_usd = 0
+                        token_website_detail = token_details.get(
+                            'info', {}).get('websites', [])
+                        if token_website_detail:
+                            token_website = token_website_detail[0].get(
+                                'url', '')
+                        else:
+                            token_website = ''
+
+                        token_telegram = ''
+                        token_twitter = ''
+                        token_socials_detail = token_details.get(
+                            'info', {}).get('socials', [])
+                        for token_social in token_socials_detail:
+                            if token_social['type'] == 'telegram':
+                                token_telegram = token_social.get('url', '')
+                            elif token_social['type'] == 'twitter':
+                                token_twitter = token_social.get('url', '')
+
+                        graph_data['nodes'][mint_address] = {
+                            'mint_address': mint_address,
+                            'name': token_details.get('name', ''),
+                            'symbol': token_details.get('symbol', ''),
+                            'volume': token_details.get('volume', {}),
+                            'price_change':
+                            token_details.get('priceChange', {}),
+                            'liquidity': token_details.get('liquidity', {}),
+                            'fdv': token_details.get('fdv', 0),
+                            'website': token_website,
+                            'telegram': token_telegram,
+                            'twitter': token_twitter
+                        }
+
+                if trade_sell_mint_address not in graph_data[
+                        'nodes'] or trade_buy_mint_address not in graph_data[
+                            'nodes']:
+                    continue
+
+                trade_sell_amount_in_usd = trade_sell['AmountInUSD']
+                if trade_sell_amount_in_usd == '0' or not can_be_float(
+                        trade_sell_amount_in_usd):
+                    trade_buy_amount_in_usd = trade_buy['AmountInUSD']
+                    if trade_buy_amount_in_usd == '0' or not can_be_float(
+                            trade_buy_amount_in_usd):
+                        trade_sell_amount = trade_sell['Amount']
+                        trade_sell_price_in_usd = trade_sell['PriceInUSD']
+                        if trade_sell_amount == '0' or not can_be_float(
+                                trade_sell_amount
+                        ) or trade_sell_price_in_usd == 0:
+                            trade_buy_amount = trade_buy['Amount']
+                            trade_buy_price_in_usd = trade_buy['PriceInUSD']
+                            if trade_buy_amount == '0' or not can_be_float(
+                                    trade_buy_amount
+                            ) or trade_buy_price_in_usd == 0:
+                                trade_amount_in_usd = 0
+                            else:
+                                trade_amount_in_usd = float(
+                                    trade_buy_amount) * trade_buy_price_in_usd
                         else:
                             trade_amount_in_usd = float(
-                                trade_buy_amount) * trade_buy_price_in_usd
+                                trade_sell_amount) * trade_sell_price_in_usd
                     else:
-                        trade_amount_in_usd = float(
-                            trade_sell_amount) * trade_sell_price_in_usd
+                        trade_amount_in_usd = float(trade_buy_amount_in_usd)
                 else:
-                    trade_amount_in_usd = float(trade_buy_amount_in_usd)
-            else:
-                trade_amount_in_usd = float(trade_sell_amount_in_usd)
+                    trade_amount_in_usd = float(trade_sell_amount_in_usd)
 
-            edge_key_main = trade_sell_mint_address + '-' + trade_buy_mint_address
-            edge_key_reverse = trade_buy_mint_address + '-' + trade_sell_mint_address
+                edge_key_main = trade_sell_mint_address + '-' + trade_buy_mint_address
+                edge_key_reverse = trade_buy_mint_address + '-' + trade_sell_mint_address
 
-            if edge_key_main not in graph_data[
-                    'edges'] and edge_key_reverse not in graph_data['edges']:
-                graph_data['edges'][edge_key_main] = trade_amount_in_usd
-            else:
-                if edge_key_main in graph_data['edges']:
-                    graph_data['edges'][edge_key_main] += trade_amount_in_usd
+                if edge_key_main not in graph_data[
+                        'edges'] and edge_key_reverse not in graph_data[
+                            'edges']:
+                    graph_data['edges'][edge_key_main] = trade_amount_in_usd
                 else:
-                    graph_data['edges'][
-                        edge_key_reverse] -= trade_amount_in_usd
+                    if edge_key_main in graph_data['edges']:
+                        graph_data['edges'][
+                            edge_key_main] += trade_amount_in_usd
+                    else:
+                        graph_data['edges'][
+                            edge_key_reverse] -= trade_amount_in_usd
 
-        saved_graph_data_file_path = f"{saved_data_folder_file_path}/graph_data_{current_datetime}.json"
+            graph_data['transaction_window'] = {
+                'earliest_local_block_time':
+                earliest_local_block_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
+                'latest_local_block_time':
+                latest_local_block_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+            }
 
-        save_json_file(saved_graph_data_file_path, graph_data)
+            saved_graph_data_file_path = f"{saved_data_folder_file_path}/graph_data_{current_datetime}.json"
+
+            save_json_file(saved_graph_data_file_path, graph_data)
+
+        else:
+            print('\nNo DEX Trades data retrieved.')
 
     else:
         print("\nMode: {}".format(mode))
@@ -723,7 +782,43 @@ if __name__ == "__main__":
 
         graph_data = load_json_file(file_path)
 
-    plot_nodes_edges_graph(graph_data, volume_threshold)
+    if filter_type == 'NAME':
+        plot_filter_name_list = plot_filter_names.strip().replace(
+            ' ', '').split(',')
+        plot_filter_name_upper_list = [
+            s.upper() for s in plot_filter_name_list
+        ]
+        node_data = graph_data['nodes']
+        plot_filtered_addresses = [
+            mint_address for mint_address in node_data
+            if node_data[mint_address]['name'].upper() in
+            plot_filter_name_upper_list
+        ]
+        is_filtered = 'YES'
+
+    elif filter_type == 'SYMBOL':
+        plot_filter_symbol_list = plot_filter_symbols.strip().replace(
+            ' ', '').split(',')
+        plot_filter_symbol_upper_list = [
+            s.replace('$', '').upper() for s in plot_filter_symbol_list
+        ]
+        node_data = graph_data['nodes']
+        plot_filtered_addresses = [
+            mint_address for mint_address in node_data
+            if node_data[mint_address]['symbol'].replace('$', '').upper() in
+            plot_filter_symbol_upper_list
+        ]
+        is_filtered = 'YES'
+
+    else:
+        plot_filtered_addresses = []
+        is_filtered = 'NO'
+
+    plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
+                           volume_threshold, is_filtered)
+
+    print('\nTotal time taken: {:.2f} seconds'.format(time.time() -
+                                                      start_time))
 
 # Nodes and Edges Data Structure
 

@@ -1,5 +1,8 @@
 import json
 import sys
+from datetime import datetime
+import pytz
+from tzlocal import get_localzone
 
 
 def load_json_file(file_path):
@@ -37,3 +40,12 @@ def can_be_float(string):
         return True
     except ValueError:
         return False
+
+
+def convert_utc_to_user_timezone(utc_time_str):
+    utc_time = datetime.strptime(utc_time_str,
+                                 "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=pytz.UTC)
+    local_timezone = get_localzone()
+    user_time = utc_time.astimezone(local_timezone)
+
+    return user_time
