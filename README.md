@@ -1,8 +1,32 @@
 # **Underground DEX Trades**
 
-### **Description**
-Underground DEX Trades is a program designed to visualize blockchain transactions using a node and edge graph, similar to platforms like [Bubblemaps](https://bubblemaps.io/). Nodes represent token mint addresses, and edges show the net volume flow in USD between these token mint addresses. For instance, if a user buys dogwifhat (WIF) using Popcat (POPCAT) for $100 USD, the graph will display two nodes for WIF and POPCAT, connected by a directional edge labeled with the transaction amount of $100 USD, pointing from POPCAT to WIF. This allows users to understand net transaction flows between different mint addresses, aiding in trend analysis and discovery of new token addresses. This can serve to provide short-term trading insights. However, the dominance of high-market-cap coins like Solana (SOL), Jupiter (JUP), and Jito (JTO) in blockchain volumes can obscure other types of trading, such as meme coins. Underground DEX Trades aims to filter out these major tokens, focusing instead on a clearer view of alternative transaction flows and reducing noise in analysis.
+### **Overview**
+Underground DEX Trades is a program designed to visualize blockchain transactions using a node and edge graph, similar to platforms like [Bubblemaps](https://bubblemaps.io/). Nodes represent token mint addresses, and edges show the net volume flow in USD between these token mint addresses. For instance, if a user buys dogwifhat (WIF) using Popcat (POPCAT) with $100 USD, the graph will display two nodes representing WIF and POPCAT, connected by a directional edge labeled with the transaction amount of $100 USD, pointing from POPCAT to WIF. This allows users to understand net transaction flows between different mint addresses, aiding in trend analysis and discovery of new token addresses. This can serve to provide short-term trading insights. However, the dominance of high-market-cap coins like Solana (SOL), Jupiter (JUP), and Jito (JTO) in blockchain volumes can obscure other types of trading, such as meme coins. Underground DEX Trades aims to filter out these major tokens, focusing instead on a clearer view of alternative transaction flows and reducing noise in analysis.
 <br>
+
+### Updates
+
+- The program can only scan DEX trades data from Solana blockchain. I may consider to add support for EVM chains, such as Ethereum and Base.
+
+### How It Works
+
+### **APIs**
+1. [Bitquery](https://docs.bitquery.io/docs/intro/)
+    - Used to query on-chain DEX trades data
+    - **REQUIRED** and **API keys REQUIRED**
+2. [Dexscreener](https://docs.dexscreener.com/api/reference)
+    - Used to query token-related information such as name, symbol, and fully diluted valuation (FDV)
+    - **REQUIRED** and **API keys NOT REQUIRED**
+3. [Raydium](https://api-v3.raydium.io/docs/)
+    - Used to query a list of tokens based on criteria such as 24hrs volume and liquidity, which can be used starting as mint addresses for the program
+    - **OPTIONAL** and **API keys NOT REQUIRED**
+4. [Vybe Network](https://docs.vybenetwork.com/docs/overview)
+    - Used to query token-related information such as volume and holder count
+    - **OPTIONAL** and **API keys REQUIRED**
+5. [Birdeye](https://birdeye.so/find-gems?chain=solana)
+    - Used to query a list of tokens based on criteria such as 24 hrs volume and 24 hrs trades, which can be used as starting mint addresses for the program
+    - **OPTIONAL** and **API keys REQUIRED**
+    - **NOT WORKING ALREADY**
 
 ### **Installation**
 1. Clone the repository using
@@ -13,17 +37,22 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     ```
     cd underground-dex-trades
     ```
-3. 
-3. Get a *CoinMarketCap API* by signing up at https://coinmarketcap.com/api/.
-    - Copy the *CoinMarketCap API* into the *private.json* file, under the key *"cmcAPIKey"*.
-4. Create a Telegram Bot using BotFather and save the *HTTP API* key (refer to the guide [here](https://medium.com/shibinco/create-a-telegram-bot-using-botfather-and-get-the-api-token-900ba00e0f39)).
-    - You can choose any name and username for the bot.
-    - Copy the *HTTP API* key into the *private.json* file, under the key *"teleAPIKey"*.
-5. Change directory into `./StarAtlas-GM-Price-Bot` and run
+3. Install required packages.
     ```
-    npm i
+    pip install -r requirements.txt
     ```
-6. Done!
+4. Rename private keys file.
+    ```
+    mv private_template.ini private.ini
+    ```
+5. Sign up for *Bitquery API* [here](https://bitquery.io/) and get the respective keys in the link below.
+    - BITQUERY_CLIENT_ID: https://account.bitquery.io/user/api_v2/applications
+    - BITQUERY_CLIENT_SECRET: https://account.bitquery.io/user/api_v2/applications
+    - BITQUERY_V1_API_KEY: https://account.bitquery.io/user/api_v1/api_keys
+6. Sign up for *Vybe Network API* [here](https://www.vybenetwork.com/) and get the respective keys in the link below.
+    - VYBE_NETWORK_X_API_KEY: https://alpha.vybenetwork.com/dashboard/api-management
+7. Copy and save the keys into the private keys file.
+8. Done!
 <br>
 
 ### **Usage**
@@ -62,65 +91,6 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     - Change the interval value to your own preference.
     - Please see **Note** section below.
 <br>
-
-### **Deploy to Cloud**
-- In this repository, only [Google Cloud Platform (GCP)](https://cloud.google.com/) is being used here. There are a few ways to go about deploying the program to GCP. I experimented with two ways. When testing **Method 1** with GitHub Actions, I intentionally left the private keys in *private.json* blank. This is to prevent me from commiting my keys into this public repository. For **Method 2**, my keys can remain in *private.json* since I do not need to commit them to GitHub (there is an option to use GitHub Actions too).
-- Before following the steps below, please fork this repository first.
-- **Method 1 using GitHub Actions and Workload Identity Federation** (follow the guide [here](https://blog.leandrotoledo.org/deploying-google-cloud-run-using-github-actions-and-workload-identity-authentication/))
-    1. Change directory into `./StarAtlas-GM-Price-Bot` and run
-        ```
-        docker build . --no-cache -t staratlas-gm-price-bot
-        ```
-    2. Continue with the steps using the link above, starting from the ***Create a Google Cloud Project*** header.
-        - Use Cloud Shell in the browser to run the commands.
-    3. Follow ***Create a Google Cloud Project***.
-    4. Follow ***Create a Workload Identity on Google Cloud***.
-    5. Follow ***Create a GitHub Actions Workflow***.
-    6. When deploying Cloud Run for the first time, an authentication error will be shown in the GitHub Actions' Workflow (To see, click on the `Actions` tab in your forked repository. Then, click into the latest workflow run and then `deploy` under `Jobs`.). To fix this error, the Cloud Run service should set to allow unauthenticated access. Run the below command in the Cloud Shell:
-        ```
-        gcloud run services add-iam-policy-binding app \
-                    --member="allUsers" \
-                    --role="roles/run.invoker"
-        ``` 
-    7. Run the below command in the Cloud Shell to start streaming logs before the deployment is being done again (refer [here](https://cloud.google.com/run/docs/logging)):
-        ```
-            gcloud alpha run services logs tail app --project PROJECT-ID
-        ```
-        - Edit `PROJECT-ID` based on your own project ID (see the steps in the link above).
-    8. Return back to the page where the GitHub Actions' workflow run is shown (refer to Step 3.) and click on `Re-run all the jobs`.
-    9. The deployment should be successful (see image below), and you can view the logs in the Cloud Shell (refer to Step 4.).
-    <img src="images/method-1-github-actions-successful-deploy.JPG" width="800" height="300">
-    10. Since the private keys are not in *private.json*, the program will exit (see the image below). However, this shows that the program is being deployed correctly.
-    <img src="images/method-1-cloud-logs.JPG" width="800" height="60">
-    <br>
-
-- **Method 2 using Google Cloud Artifact Registry** (follow the guide [here](https://deno.land/manual@v1.28.1/advanced/deploying_deno/google_cloud_run))
-    1. Change directory into `./StarAtlas-GM-Price-Bot` and run
-        ```
-        docker build . --no-cache -t staratlas-gm-price-bot
-        ```
-    2. Continue with the steps using the link above, starting from the ***Set up Artifact Registry*** header.
-        - Use Cloud Shell in the browser to run the commands.
-        - Since the docker is built in Step 1., skip if required to.
-    3. Follow ***Set up Artifact Registry***.
-        - You can give a different Artifact Registry name.
-    4. Follow ***Build, Tag, and Push to Artifact Registry***.
-        - Since the docker is built in Step 1., do not use the build command.
-        - You can give a different Artifact Registry image name 
-        - Tag the local docker image name (`staratlas-gm-price-bot`) with the Artifact Registry address, repository, and name.
-    5. Follow ***Create a Google Cloud Run Service***.
-        - Make sure to use the correct port number when setting up the Google Cloud Run Service.
-        - In this repository, port 8080 is used (see `main.js` and `Dockerfile`).
-    6. Run the below command in the Cloud Shell to start streaming logs before the deployment is being done again (refer [here](https://cloud.google.com/run/docs/logging)):
-        ```
-            gcloud alpha run services logs tail app --project PROJECT-ID
-        ```
-        - Edit `PROJECT-ID` based on your own project ID (see the steps in the link above).
-    7. Follow ***Deploy with gcloud***.
-        - Since the private keys are in *private.json*, the program will run (see the image below). It shows that the program is being deployed correctly.
-        <img src="images/method-2-cloud-logs.JPG" width="800" height="120">
-    8. You can follow ***Automate Deployment with GitHub Actions***, but remember not to commit your keys to your public repository.
- <br>
 
 ### **Note**
 - The program uses the [`@staratlas/factory`](https://www.npmjs.com/package/@staratlas/factory) package.
