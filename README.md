@@ -13,6 +13,7 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - [Bitquery Early Access Program (EAP)](https://docs.bitquery.io/docs/graphql/dataset/EAP/) is used to query Solana DEX trades data in this project. As this API version is considered new, future updates on this API may break the program. 
     - EAP is currently limited to real-time information and does not include historical data. Hence, the amount of DEX trades data retrieved from the API is limited. Due to this, any insight produced from this program is only short-term.
 - Please let me know if there are any errors or ways the code may be improved.
+<br>
 
 ### How It Works
 
@@ -79,12 +80,18 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 
 - If **PLOT** mode is selected, the program will skip to this point. The user must provide the graph data. Else, the program will arrive at this checkpoint after finishing Checkpoint 3.
 - The graph data will be processed and displayed in a node-and-edge graph.
+
+<img src="images/unfiltered_node_and_edge_graph.png" width="783" height="400">
+
 - However, the graph can be very messy if no further filtering is done.
 - Filtering done in this phase includes:
     - Minimum Volume Threshold
         - User can set a minimum volume threshold to filter higher volume flow edges. This can help to remove noisy data on the graph.
     - Filter Token Names or Symbols
         - User can select specificially which tokens to display on the graph. All token pairs that contains the indicated tokens will be displayed.
+
+<img src="images/filtered_node_and_edge_graph.png" width="783" height="400">
+
 <br>
 
 ### **APIs**
