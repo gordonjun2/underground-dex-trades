@@ -4,11 +4,12 @@ import datetime
 from urllib3.exceptions import InsecureRequestWarning
 import urllib3
 from utils import save_json_file
-from config import VYBE_NETWORK_X_API_KEY
+from config import VYBE_NETWORK_X_API_KEY, VYBE_NETWORK_QUERY_LIMIT
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
-url = "https://api.vybenetwork.xyz/tokens?sortByDesc=marketCap&limit=1000&page=0"
+url = "https://api.vybenetwork.xyz/tokens?sortByDesc=marketCap&limit={}&page=0".format(
+    VYBE_NETWORK_QUERY_LIMIT)
 
 headers = {"accept": "application/json", "X-API-KEY": VYBE_NETWORK_X_API_KEY}
 

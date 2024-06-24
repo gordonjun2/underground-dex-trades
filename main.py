@@ -627,7 +627,8 @@ if __name__ == "__main__":
                     "\nPlease provide the file path to load the DEX trades data in LOAD_TRADES mode.\n"
                 )
                 sys.exit(1)
-            elif addresses_file_path in ['', None]:
+
+            if addresses_file_path in ['', None]:
                 print(
                     "\nPlease provide the file path to load the remaining mint addresses in LOAD_TRADES mode.\n"
                 )
@@ -644,10 +645,8 @@ if __name__ == "__main__":
 
         if combined_dex_trades_data:
 
-            # token_details_dict = dexscreener.get_token_details(
-            #     list(remaining_mint_addresses))
-
-            token_details_dict = {}
+            token_details_dict = dexscreener.get_token_details(
+                list(remaining_mint_addresses))
 
             for dex_trade in combined_dex_trades_data:
 
