@@ -214,6 +214,23 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     or
     python main.py -m plot -f ./saved_data/graph_data_20240624_225313.json
     ```
+- Usage tips:
+    - User can make use of Plotly toolbar, shown on the top right of the chart, to interact with the chart. The functions include zooming in and out, panning, scaling, and more.
+        <div align="center">
+            <img src="images/plotly_toolbar.png" width="604" height="167">
+            <p><em>Plotly Toolbar</em></p>
+        </div>
+    - User can double click on the chart to reset the view.
+    - User can hover the mouse pointer above each node to see the token detail.
+        <div align="center">
+            <img src="images/token_detail.png" width="600" height="181">
+            <p><em>Token Detail</em></p>
+        </div>
+    - User can hover the mouse pointer above each edge to see the net volume flow of the token pair.
+        <div align="center">
+            <img src="images/token_pair_net_volume_flow.png" width="600" height="237">
+            <p><em>Token Pair Net Volume Flow</em></p>
+        </div>
 <br>
 
 ### **Other APIs Usage**
