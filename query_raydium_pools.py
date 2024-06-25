@@ -38,12 +38,12 @@ if __name__ == "__main__":
                         '--page_size',
                         type=int,
                         default=50,
-                        help="Page Size. Max 1000.")
+                        help="Page Size. Max is 1000. Default is 50.")
     parser.add_argument('-p',
                         '--page',
                         type=int,
                         default=1,
-                        help="Page Index.")
+                        help="Page Index. Default is 1.")
     args = parser.parse_args()
 
     pool_type = str(args.pool_type).lower()

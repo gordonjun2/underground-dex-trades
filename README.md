@@ -49,9 +49,9 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - **Mode: INPUT (*INPUT*)**
     - If the *INPUT* mode is selected, the user must provide a list of token mint addresses.
     - While it is up to the user to gather the token list, the repository provides two ways the user can get them.
-        - **Vybe Network API**:
+        - ***Vybe Network API***:
             - The user can run the ```query_token_vybe_network.py``` script to retrieve a list of tokens sorted by their market cap in descending order.
-        - **Raydium API**:
+        - ***Raydium API***:
             - The user can run the ```query_raydium_pools.py``` script to retrieve a list of tokens found in Raydium pools sorted by selected factor such as 24 hours volume, liquidity, and more.
     - The query will be done on this list of tokens. Unlike the *BFS* algorithm, this mode does not search more token mint addresses and transaction signatures beyond the first depth.
     - As the process runs, all token mint addresses and the transaction signatures will be saved.
@@ -64,10 +64,10 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - The next step of the program involves querying the recorded transaction signatures and processing them.
 - The transaction signatures will be queried in batches. A single transaction signature may contain multiple pool swaps, hence multiple data may be returned after querying a single transaction signature. After ordering the swaps, the actual intent of the transaction can be deduced using the sell side token of the first swap and the buy side token of the last swap.
 - Two filters will take place here:
-    - **MEV**
+    - ***MEV***:
         - If the sell side token of the first swap equals to the buy side token of the last swap (eg. *1 SOL* --> *1.0019 SOL*), the trade will be ignored.
         - This is to prevent self-loop in the node-and-edge graph and any form of volume bias.
-    - **Excluded tokens**
+    - ***Excluded tokens***:
         - If the sell side token of the first swap or the buy side token of the last swap is found in the list of excluded tokens, the trade will be ignored.
         - This part helps to prevent high-market-cap coins from dominating the volume flow.
         - Users can configure it in ```config.py```.
@@ -79,9 +79,9 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - If **LOAD_TRADES** mode is selected, the program will skip to this point. The user must provide a list of DEX trades data and a list of token mint addresses. Else, the program will arrive at this checkpoint after finishing *Checkpoint 2*.
 - At this point, the program will rely on Dexscreener API to retrieve token details, such as name, symbol, volume, FDV, socials, of the remaining tokens.
 - The program will start to create the node-and-edge data.
-    - **Node Information**:
+    - ***Node Information***:
         - Contains all token mint addresses and their respective token details
-    - **Edge Information**:
+    - ***Edge Information***:
         - Contains unique pair of token mint addresses representing swaps discovered between them and the net volume flow in a single direction
         - Eg. If the pair is named *'25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ-2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm'* and the net volume is *37 USD*, this means that a net *37 USD* flows from the token '25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ' to the token *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm'*. No *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm-25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ'* should be found as the pair already existed. Using the same example but in another perspective, *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm-25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ'* simply means a net *-37 USD* flow from the token *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm'* to the token *'25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ'*, which refers to the same thing as before.
 - The graph data will be saved.
@@ -99,9 +99,9 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 
 - However, the graph can be very messy if no further filtering is done.
 - Filtering done in this phase includes:
-    - **Minimum Volume Threshold**
+    - ***Minimum Volume Threshold***
         - User can set a minimum volume threshold to filter higher volume flow edges. This can help to remove noisy data on the graph.
-    - **Filter Token Names or Symbols**
+    - ***Filter Token Names or Symbols***
         - User can select specificially which tokens to display on the graph. All token pairs that contains the indicated tokens will be displayed.
 
 <div align="center">
@@ -115,20 +115,20 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 ### **APIs**
 1. [Bitquery](https://docs.bitquery.io/docs/intro/)
     - Used to query on-chain DEX trades data
-    - **REQUIRED** and **API keys REQUIRED**
+    - ***REQUIRED*** and ***API keys REQUIRED***
 2. [Dexscreener](https://docs.dexscreener.com/api/reference)
     - Used to query token-related information such as name, symbol, and fully diluted valuation (FDV)
-    - **REQUIRED** and **API keys NOT REQUIRED**
+    - ***REQUIRED*** and ***API keys NOT REQUIRED***
 3. [Raydium](https://api-v3.raydium.io/docs/)
     - Used to query a list of tokens based on criteria such as 24hrs volume and liquidity, which can be used starting as mint addresses for the program
-    - **OPTIONAL** and **API keys NOT REQUIRED**
+    - ***OPTIONAL*** and ***API keys NOT REQUIRED***
 4. [Vybe Network](https://docs.vybenetwork.com/docs/overview)
     - Used to query token-related information such as volume and holder count
-    - **OPTIONAL** and **API keys REQUIRED**
+    - ***OPTIONAL*** and ***API keys REQUIRED***
 5. [Birdeye](https://birdeye.so/find-gems?chain=solana)
     - Used to query a list of tokens based on criteria such as 24 hrs volume and 24 hrs trades, which can be used as starting mint addresses for the program
-    - **OPTIONAL** and **API keys REQUIRED**
-    - **NOT WORKING ALREADY**
+    - ***OPTIONAL*** and ***API keys REQUIRED***
+    - ***NOT WORKING ANYMORE*** due to Cloudflare
 <br>
 
 ### **Installation**
@@ -179,8 +179,8 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - ```EDGE_POINTS_OPACITY```: This number represents the opacity value of the markers on each edge. The default is 0.
 <br>
 
-### **Usage**
-- Arguments
+### **Main Program Usage**
+- Main Program Arguments
     ```
     -m      : BFS: use Breadth First Search to traverse and query the tree of the provided 
               mint address up to the specified depth and retrieve transaction signatures and DEX trades data, 
@@ -205,7 +205,7 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 
     -pfs    : Filter token symbol and its related token symbol to be displayed for graph plot. Use comma separator. Use EITHER plot_filter_names or plot_filter_symbols but not both. Eg. 'WIF,NUB'.
     ```
-- Run the command below to start the program:
+- Run the command below to start the main program:
     ```
     python main.py -m <set options and arguments here>
 
@@ -214,4 +214,34 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     or
     python main.py -m plot -f ./saved_data/graph_data_20240624_225313.json
     ```
+<br>
+
+### **Other APIs Usage**
+- ***Vybe Network API***
+    - Run the command below to retrieve a list of tokens ordered by their market cap in descending order:
+        ```
+        python query_token_vybe_network.py
+        ```
+- ***Raydium API***
+    - Arguments
+        ```
+        -pt     : Pool Type. Available values : all, concentrated, standard.
+
+        -psf    : Pool Field. Available values : default, liquidity, volume24h, fee24h, apr24h, volume7d, fee7d, apr7d, volume30d, fee30d, apr30d.
+
+        -st     : Sort Type. Available values : desc, asc.
+
+        -ps     : Page Size. Max 1000.
+
+        -p     : Page Index.
+        ```
+    - Run the command below to retrieve a list of tokens based on criteria such as 24hrs volume and liquidity:
+        ```
+        python query_raydium_pools.py -pt all -psf volume24h -st desc -p 1
+        ```
+- ***Birdeye (NOT WORKING ANYMORE)***
+    - Run the command below to retrieve a list of tokens ordered by their 24 hours volume in descending order:
+        ```
+        python query_birdeye.py
+        ```
 <br>
