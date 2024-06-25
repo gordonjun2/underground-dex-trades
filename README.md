@@ -1,7 +1,7 @@
 # **Underground DEX Trades**
 
 ### **Overview**
-Underground DEX Trades is a program designed to visualize blockchain transactions using a node and edge graph, similar to platforms like [Bubblemaps](https://bubblemaps.io/). Nodes represent token mint addresses, and edges show the net volume flow in USD between these token mint addresses. For instance, if a user buys dogwifhat (WIF) using Popcat (POPCAT) with $100 USD, the graph will display two nodes representing WIF and POPCAT, connected by a directional edge labeled with the transaction amount of $100 USD, pointing from POPCAT to WIF. This allows users to understand net transaction flows between different mint addresses, aiding in trend analysis and discovery of new token addresses. This can serve to provide short-term trading insights. However, the dominance of high-market-cap coins like Solana (SOL), Jupiter (JUP), and Jito (JTO) in blockchain volumes can obscure other types of trading, such as meme coins. Underground DEX Trades aims to filter out these major tokens, focusing instead on a clearer view of alternative transaction flows and reducing noise in analysis.
+Underground DEX Trades is a program designed to visualize blockchain transactions using a node and edge graph, similar to platforms like [Bubblemaps](https://bubblemaps.io/). Nodes represent token mint addresses, and edges show the net volume flow in USD between these token mint addresses. For instance, if a user buys *dogwifhat (WIF)* using *Popcat (POPCAT)* with *100 USD*, the graph will display two nodes representing *WIF* and *POPCAT*, connected by a directional edge labeled with the transaction amount of *100 USD*, pointing from *POPCAT* to *WIF*. This allows users to understand net transaction flows between different mint addresses, aiding in trend analysis and discovery of new token addresses. This can serve to provide short-term trading insights. However, the dominance of high-market-cap coins like *Solana (SOL)*, *Jupiter (JUP)*, and *Jito (JTO)* in blockchain volumes can obscure other types of trading, such as meme coins. Underground DEX Trades aims to filter out these major tokens, focusing instead on a clearer view of alternative transaction flows and reducing noise in analysis.
 
 <div align="center">
   <img src="images/overview_node_and_edge_graph.png" width="783" height="400">
@@ -32,51 +32,51 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - There are various checkpoints created as the program runs, and the user can choose which checkpoint to start from based on the mode selection shown below.
 
 #### Checkpoint 1 
-- **Mode: Breadth-First Search (BFS)**
-    - If BFS mode is selected, the user must provide a starting token mint address first.
-    - The BFS algorithm starts with the root node, which is the first token mint address, and queries any DEX trade containing this address. 
+- **Mode: Breadth-First Search (*BFS*)**
+    - If *BFS* mode is selected, the user must provide a starting token mint address first.
+    - The *BFS* algorithm starts with the root node, which is the first token mint address, and queries any DEX trade containing this address. 
     - It records new token mint addresses that trade against the root and their corresponding transaction signatures, making these new addresses the children nodes. 
     - The algorithm then queries each of these children nodes to retrieve more new token mint addresses and accumulate more transaction signatures. 
     - As the algorithm runs, all token mint addresses and the transaction signatures will be saved.
     - This process continues until the specified tree depth is reached, such as stopping at the grandchildren nodes if the depth is set to 2.
-    - The program will reach Checkpoint 1 once the BFS algorithm has completed.
+    - The program will reach *Checkpoint 1* once the *BFS* algorithm has completed.
 
 <div align="center">
     <img src="images/depth_and_breadth_first_search.jpeg" width="600" height="400">
     <p><em>Depth-First Search vs Breadth-First Search (Source: <a href="https://medium.com/basecs/breaking-down-breadth-first-search-cebe696709d9">Breaking Down Breadth-First Search</a>)</em></p>
 </div>
 
-- **Mode: Input (INPUT)**
-    - If the INPUT mode is selected, the user must provide a list of token mint addresses.
+- **Mode: INPUT (*INPUT*)**
+    - If the *INPUT* mode is selected, the user must provide a list of token mint addresses.
     - While it is up to the user to gather the token list, the repository provides two ways the user can get them.
-        - Vybe Network API:
+        - **Vybe Network API**:
             - The user can run the ```query_token_vybe_network.py``` script to retrieve a list of tokens sorted by their market cap in descending order.
-        - Raydium API:
+        - **Raydium API**:
             - The user can run the ```query_raydium_pools.py``` script to retrieve a list of tokens found in Raydium pools sorted by selected factor such as 24 hours volume, liquidity, and more.
-    - The query will be done on this list of tokens. Unlike the BFS algorithm, this mode does not search more token mint addresses and transaction signatures beyond the first depth.
+    - The query will be done on this list of tokens. Unlike the *BFS* algorithm, this mode does not search more token mint addresses and transaction signatures beyond the first depth.
     - As the process runs, all token mint addresses and the transaction signatures will be saved.
     - The query process will end after all tokens in the list are queried.
-    - The program will reach Checkpoint 1 once the process has completed.
+    - The program will reach *Checkpoint 1* once the process has completed.
 
 #### Checkpoint 2
 
-- If **LOAD_SIGNATURES** mode is selected, the program will skip to this point. The user must provide a list of unique transaction signatures. Else, the program will arrive at this checkpoint after finishing Checkpoint 1.
+- If **LOAD_SIGNATURES** mode is selected, the program will skip to this point. The user must provide a list of unique transaction signatures. Else, the program will arrive at this checkpoint after finishing *Checkpoint 1*.
 - The next step of the program involves querying the recorded transaction signatures and processing them.
 - The transaction signatures will be queried in batches. A single transaction signature may contain multiple pool swaps, hence multiple data may be returned after querying a single transaction signature. After ordering the swaps, the actual intent of the transaction can be deduced using the sell side token of the first swap and the buy side token of the last swap.
 - Two filters will take place here:
     - **MEV**
-        - If the sell side token of the first swap equals to the buy side token of the last swap (eg. 1 SOL --> 1.0019 SOL), the trade will be ignored.
+        - If the sell side token of the first swap equals to the buy side token of the last swap (eg. *1 SOL* --> *1.0019 SOL*), the trade will be ignored.
         - This is to prevent self-loop in the node-and-edge graph and any form of volume bias.
     - **Excluded tokens**
         - If the sell side token of the first swap or the buy side token of the last swap is found in the list of excluded tokens, the trade will be ignored.
         - This part helps to prevent high-market-cap coins from dominating the volume flow.
         - Users can configure it in ```config.py```.
 - The filtered trade data and the filtered token mint addresses will be saved.
-- The program will reach Checkpoint 2 once the DEX trades data are processed.
+- The program will reach *Checkpoint 2* once the DEX trades data are processed.
 
 #### Checkpoint 3
 
-- If **LOAD_TRADES** mode is selected, the program will skip to this point. The user must provide a list of DEX trades data and a list of token mint addresses. Else, the program will arrive at this checkpoint after finishing Checkpoint 2.
+- If **LOAD_TRADES** mode is selected, the program will skip to this point. The user must provide a list of DEX trades data and a list of token mint addresses. Else, the program will arrive at this checkpoint after finishing *Checkpoint 2*.
 - At this point, the program will rely on Dexscreener API to retrieve token details, such as name, symbol, volume, FDV, socials, of the remaining tokens.
 - The program will start to create the node-and-edge data.
     - **Node Information**:
@@ -85,11 +85,11 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
         - Contains unique pair of token mint addresses representing swaps discovered between them and the net volume flow in a single direction
         - Eg. If the pair is named *'25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ-2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm'* and the net volume is *37 USD*, this means that a net *37 USD* flows from the token '25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ' to the token *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm'*. No *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm-25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ'* should be found as the pair already existed. Using the same example but in another perspective, *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm-25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ'* simply means a net *-37 USD* flow from the token *'2Dyzu65QA9zdX1UeE7Gx71k7fiwyUK6sZdrvJ7auq5wm'* to the token *'25hAyBQfoDhfWx9ay6rarbgvWGwDdNqcHsXS3jQ3mTDJ'*, which refers to the same thing as before.
 - The graph data will be saved.
-- The program will reach Checkpoint 3 once the graph data is created.
+- The program will reach *Checkpoint 3* once the graph data is created.
 
 #### Node-and-Edge Graph Plotting
 
-- If **PLOT** mode is selected, the program will skip to this point. The user must provide the graph data. Else, the program will arrive at this checkpoint after finishing Checkpoint 3.
+- If **PLOT** mode is selected, the program will skip to this point. The user must provide the graph data. Else, the program will arrive at this checkpoint after finishing *Checkpoint 3*.
 - The graph data will be processed and displayed in a node-and-edge graph.
 
 <div align="center">
@@ -210,7 +210,7 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     python main.py -m <set options and arguments here>
 
     Eg. 
-    python main.py -m bfs -a GtDZKAqvMZMnti46ZewMiXCa4oXF4bZxwQPoKzXPFxZn -d 2 -s 2 -v 10000 -pfs 'wif,nub,popcat'
+    python main.py -m *BFS* -a GtDZKAqvMZMnti46ZewMiXCa4oXF4bZxwQPoKzXPFxZn -d 2 -s 2 -v 10000 -pfs 'wif,nub,popcat'
     or
     python main.py -m plot -f ./saved_data/graph_data_20240624_225313.json
     ```
