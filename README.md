@@ -109,6 +109,7 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     <p><em>Filtered Node-and-Edge Graph</em></p>
 </div>
 
+- The node-and-edge graph uses the [spiral layout](https://networkx.org/documentation/stable/reference/generated/networkx.drawing.layout.spiral_layout.html). The reason for this option is to minimize edge crossings. User can still refer to the link [here](https://networkx.org/documentation/stable/reference/drawing.html) for a selection of graph layout.
 <br>
 
 ### **APIs**
@@ -154,7 +155,6 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 6. Sign up for *Vybe Network API* [here](https://www.vybenetwork.com/) and get the respective keys in the link below.
     - VYBE_NETWORK_X_API_KEY: https://alpha.vybenetwork.com/dashboard/api-management
 7. Copy and save the keys into the private keys file.
-8. Done!
 <br>
 
 ### **Configuration**
@@ -189,21 +189,21 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
               LOAD_TRADES: skip the query process and load the DEX trades data from a saved JSON file, and
               PLOT: skip the query process and load the graph data from a saved JSON file.
 
-    -a      : The first mint address to query. **REQURED for BFS mode**.
+    -a      : The first mint address to query. REQURED for BFS mode.
 
-    -d      : The depth to which the function should traverse. Default is 2. **REQURED for BFS mode**.
+    -d      : The depth to which the function should traverse. Default is 2. REQURED for BFS mode.
 
-    -f      : The file to load the JSON that contains the list of mint addresses, the list of unique signatures, the DEX trades data, or the graph data. **REQURED for INPUT, LOAD_SIGNATURES, LOAD_TRADES, PLOT mode**.
+    -f      : The file to load the JSON that contains the list of mint addresses, the list of unique signatures, the DEX trades data, or the graph data. REQURED for INPUT, LOAD_SIGNATURES, LOAD_TRADES, PLOT mode.
 
-    -af     : The file to load the JSON that contains the list of remaining mint addresses. **REQURED for LOAD_TRADES mode**.
+    -af     : The file to load the JSON that contains the list of remaining mint addresses. REQURED for LOAD_TRADES mode.
 
     -s      : The number of days before the current local time to query the DEX trades data. Default is 2.
 
     -v      : The minimum volume threshold in USD for the DEX trades data to be displayed for graph plot. Default is 0.
 
-    -pfn    : Filter token name and its related token name to be displayed for graph plot. Use comma separator. **Use EITHER plot_filter_names or plot_filter_symbols but not both**. Eg. 'dogwifhat,nubcat'.
+    -pfn    : Filter token name and its related token name to be displayed for graph plot. Use comma separator. Use EITHER plot_filter_names or plot_filter_symbols but not both. Eg. 'dogwifhat,nubcat'.
 
-    -pfs    : Filter token symbol and its related token symbol to be displayed for graph plot. Use comma separator. **Use EITHER plot_filter_names or plot_filter_symbols but not both**. Eg. 'WIF,NUB'.
+    -pfs    : Filter token symbol and its related token symbol to be displayed for graph plot. Use comma separator. Use EITHER plot_filter_names or plot_filter_symbols but not both. Eg. 'WIF,NUB'.
     ```
 - Run the command below to start the program:
     ```
