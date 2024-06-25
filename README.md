@@ -11,10 +11,10 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 <br>
 
 ### Notes
-- This is a personal project of mine and was not created under any entity.
+- This is a **personal project** of mine and was not created under any entity.
 - Please be aware that the results provided by this project might not be 100% accurate due to potential bugs.
-- Please do not rely on this software to make financial decisions. NFA.
-- The program can only scan DEX trades data from Solana blockchain. I may consider to add support for EVM chains, such as Ethereum and Base.
+- Please do not rely on this software to make financial decisions. **NFA**.
+- **The program can only scan DEX trades data from Solana blockchain**. I may consider to add support for EVM chains, such as Ethereum and Base.
 - [Bitquery Early Access Program (EAP)](https://docs.bitquery.io/docs/graphql/dataset/EAP/) is used to query Solana DEX trades data in this project. As this API version is considered new, future updates on this API may break the program. 
     - EAP is currently limited to real-time information and does not include historical data. Hence, the amount of DEX trades data retrieved from the API is limited. Due to this, any insight produced from this program is only short-term.
 - Please let me know if there are any errors or ways the code may be improved.
