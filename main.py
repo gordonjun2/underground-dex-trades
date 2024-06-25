@@ -15,8 +15,10 @@ from utils import *
 import dexscreener
 from plot_graph import plot_nodes_edges_graph
 from config import (BITQUERY_CLIENT_ID, BITQUERY_CLIENT_SECRET,
-                    BITQUERY_V1_API_KEY, API_VERSION, API_VERSION_URL_MAP,
-                    EXCLUDED_MINT_ADDRESSES, variables)
+                    BITQUERY_V1_API_KEY, BITQUERY_API_VERSION,
+                    BITQUERY_API_VERSION_URL_MAP, EXCLUDED_MINT_ADDRESSES,
+                    variables, MAX_RETRIES, RETRY_AFTER,
+                    MAX_NO_OF_SIGNATURES_PER_BATCH)
 
 warnings.filterwarnings("ignore", module="urllib3")
 
@@ -55,23 +57,23 @@ def generate_oAuth():
 
 def get_api_base_url():
 
-    if API_VERSION not in API_VERSION_URL_MAP:
+    if BITQUERY_API_VERSION not in BITQUERY_API_VERSION_URL_MAP:
         raise ValueError(
-            f"API version {API_VERSION} is not supported. Supported API versions are {list(API_VERSION_URL_MAP.keys())}"
+            f"API version {BITQUERY_API_VERSION} is not supported. Supported API versions are {list(BITQUERY_API_VERSION_URL_MAP.keys())}"
         )
     else:
-        url = API_VERSION_URL_MAP[API_VERSION]
+        url = BITQUERY_API_VERSION_URL_MAP[BITQUERY_API_VERSION]
 
         return url
 
 
-def bitqueryAPICall(payload, max_retries=10, retry_after=10):
+def bitqueryAPICall(payload, max_retries=MAX_RETRIES, retry_after=RETRY_AFTER):
 
     retry_count = 0
 
     while retry_count < max_retries:
 
-        if API_VERSION == 'v1':
+        if BITQUERY_API_VERSION == 'v1':
             response = requests.post(url,
                                      json=payload,
                                      headers=headers,
@@ -128,7 +130,7 @@ def accumulate_txn_signatures(mint_address):
     query {{
     Solana {{
         DEXTrades(
-        where: {{Transaction: {{Result: {{Success: true}}}}, Block: {{Time: {{since: "{two_days_before_utc_str}"}}}}, any: [{{Trade: {{Buy: {{Currency: {{MintAddress: {{is: "{mint_address}"}}}}}}}}}}, {{Trade: {{Sell: {{Currency: {{MintAddress: {{is: "{mint_address}"}}}}}}}}}}]}}
+        where: {{Transaction: {{Result: {{Success: true}}}}, Block: {{Time: {{since: "{n_days_before_utc_str}"}}}}, any: [{{Trade: {{Buy: {{Currency: {{MintAddress: {{is: "{mint_address}"}}}}}}}}}}, {{Trade: {{Sell: {{Currency: {{MintAddress: {{is: "{mint_address}"}}}}}}}}}}]}}
         orderBy: {{descending: Block_Time}}
         limitBy: {{by: Transaction_Signature, count: 1}}
         ) {{
@@ -242,8 +244,9 @@ def bfs_accumulate_unique_signatures(mint_address, max_node_depth):
     return unique_mint_addresses
 
 
-def get_dex_trades_data(unique_signatures,
-                        max_no_of_signatures_per_batch=15000):
+def get_dex_trades_data(
+        unique_signatures,
+        max_no_of_signatures_per_batch=MAX_NO_OF_SIGNATURES_PER_BATCH):
 
     unique_signatures_list = list(unique_signatures)
     total_unique_signatures = len(unique_signatures)
@@ -414,7 +417,7 @@ if __name__ == "__main__":
         '--file',
         type=str,
         help=
-        "The file to load the JSON that contains the list of mint addresses, the list of unique signatires, or the DEX trades data. REQURED for INPUT, LOAD_SIGNATURES, LOAD_TRADES, PLOT mode."
+        "The file to load the JSON that contains the list of mint addresses, the list of unique signatures, or the DEX trades data. REQURED for INPUT, LOAD_SIGNATURES, LOAD_TRADES, PLOT mode."
     )
     parser.add_argument(
         '-af',
@@ -422,6 +425,14 @@ if __name__ == "__main__":
         type=str,
         help=
         "The file to load the JSON that contains the list of remaining mint addresses. REQURED for LOAD_TRADES mode."
+    )
+    parser.add_argument(
+        '-s',
+        '--since_days',
+        type=int,
+        default=2,
+        help=
+        "The number of days before the current local time to query the DEX trades data. Default is 2."
     )
     parser.add_argument(
         '-v',
@@ -454,6 +465,7 @@ if __name__ == "__main__":
     max_node_depth = args.depth
     file_path = args.file
     addresses_file_path = args.addresses_file
+    since_days = args.since_days
     volume_threshold = args.volume
     plot_filter_names = args.plot_filter_names
     plot_filter_symbols = args.plot_filter_symbols
@@ -485,10 +497,9 @@ if __name__ == "__main__":
     # Get datetime two days before the current local time
     local_timezone = get_localzone()
     current_time = datetime.now(local_timezone)
-    two_days_before = current_time - timedelta(days=5)
-    two_days_before_utc = two_days_before.astimezone(pytz.utc)
-    two_days_before_utc_str = two_days_before_utc.strftime(
-        '%Y-%m-%dT%H:%M:%SZ')
+    n_days_before = current_time - timedelta(days=since_days)
+    n_days_before_utc = n_days_before.astimezone(pytz.utc)
+    n_days_before_utc_str = n_days_before_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     unique_signatures = set()
     combined_dex_trades_data = []
@@ -505,7 +516,7 @@ if __name__ == "__main__":
 
     url = get_api_base_url()
 
-    if API_VERSION == 'v1':
+    if BITQUERY_API_VERSION == 'v1':
         headers = {'X-API-KEY': BITQUERY_V1_API_KEY}
     else:
         headers = generate_oAuth()
@@ -517,6 +528,8 @@ if __name__ == "__main__":
             print("\nMode: {}".format(mode))
             print("First Mint Address: {}".format(mint_address))
             print("Max Node Depth: {}".format(max_node_depth))
+            print("No. of days ago to query the data from: {}".format(
+                since_days))
             print(
                 "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
@@ -548,6 +561,8 @@ if __name__ == "__main__":
             print("\nMode: {}".format(mode))
             print("File Path to the List of Mint Addresses: {}".format(
                 file_path))
+            print("No. of days ago to query the data from: {}".format(
+                since_days))
             print(
                 "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
@@ -593,6 +608,8 @@ if __name__ == "__main__":
             print("\nMode: {}".format(mode))
             print("File Path to the Saved Unique Signatures: {}".format(
                 file_path))
+            print("No. of days ago to query the data from: {}".format(
+                since_days))
             print(
                 "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
@@ -619,6 +636,8 @@ if __name__ == "__main__":
                 "File Path to the Saved DEX Trades Data: {}".format(file_path))
             print("File Path to the Saved Remaining Mint Addresses: {}".format(
                 addresses_file_path))
+            print("No. of days ago to query the data from: {}".format(
+                since_days))
             print(
                 "Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
@@ -771,6 +790,7 @@ if __name__ == "__main__":
     else:
         print("\nMode: {}".format(mode))
         print("File Path to the Saved Graph Data: {}".format(file_path))
+        print("No. of days ago to query the data from: {}".format(since_days))
         print("Minimum Volume Threshold in USD: {}".format(volume_threshold))
 
         if file_path in ['', None]:
@@ -811,7 +831,11 @@ if __name__ == "__main__":
 
     else:
         plot_filtered_addresses = []
-        is_filtered = 'NO'
+
+        if volume_threshold > 0:
+            is_filtered = 'YES'
+        else:
+            is_filtered = 'NO'
 
     plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
                            volume_threshold, is_filtered)

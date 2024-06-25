@@ -18,8 +18,8 @@ birdeye = dict(cfg.items('birdeye'))
 BIRDEYE_AGENT_ID = birdeye.get('birdeye_agent_id', '')
 BIRDEYE_USER_AGENT = birdeye.get('birdeye_user_agent', '')
 
-API_VERSION = 'EAP'
-API_VERSION_URL_MAP = {
+BITQUERY_API_VERSION = 'EAP'
+BITQUERY_API_VERSION_URL_MAP = {
     'v1': 'https://graphql.bitquery.io/',
     'v2': 'https://streaming.bitquery.io/graphql',
     'EAP': 'https://streaming.bitquery.io/eap',
@@ -36,9 +36,15 @@ EXCLUDED_MINT_ADDRESSES = [
     'J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn',  # JitoSOL
     'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1',  # bSOL
     'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So',  # mSOL
-    '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh'  # WBTC
+    '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',  # WBTC
+    '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs'  # WETH
 ]
 
 variables = {}
 
 VYBE_NETWORK_QUERY_LIMIT = 100
+MAX_RETRIES = 10
+RETRY_AFTER = 10
+MAX_NO_OF_SIGNATURES_PER_BATCH = 10000
+EDGE_POINTS_QUANTITY = 50
+EDGE_POINTS_OPACITY = 0

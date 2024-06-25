@@ -4,14 +4,12 @@ import numpy as np
 from collections import deque
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import math
+from config import (EDGE_POINTS_QUANTITY, EDGE_POINTS_OPACITY)
 
 # References:
 # - https://stackoverflow.com/questions/74607000/python-networkx-plotly-how-to-display-edges-mouse-over-text
 # - https://stackoverflow.com/questions/49234144/networkx-node-size-must-correlate-to-dimension
-
-EDGE_POINTS_QUANTITY = 50
-EDGE_POINTS_OPACITY = 0
+# - https://matplotlib.org/stable/users/explain/colors/colormaps.html
 
 
 def queue(a, b, qty):

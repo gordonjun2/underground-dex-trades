@@ -1,11 +1,14 @@
 import requests
 import time
 import warnings
+from config import (MAX_RETRIES, RETRY_AFTER)
 
 warnings.filterwarnings("ignore", module="urllib3")
 
 
-def get_token_details(mint_addresses, max_retries=5, retry_after=10):
+def get_token_details(mint_addresses,
+                      max_retries=MAX_RETRIES,
+                      retry_after=RETRY_AFTER):
 
     token_details_dict = {}
     total_mint_addresses = len(mint_addresses)
