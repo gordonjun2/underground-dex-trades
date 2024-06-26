@@ -294,6 +294,7 @@ def get_dex_trades_data(
             }}
             Transaction {{
                 Signature
+                Signer
             }}
             Block {{
                 Time
@@ -345,7 +346,6 @@ def process_dex_trades_data(dex_trades_data):
         first_transaction_trade = first_transaction['Trade']
         last_transaction_trade = last_transaction['Trade']
         transaction_block = first_transaction['Block']
-        transaction_transaction = first_transaction['Transaction']
 
         first_transaction_trade_sell_mint_address = first_transaction_trade[
             'Sell']['Currency']['MintAddress']
@@ -370,7 +370,8 @@ def process_dex_trades_data(dex_trades_data):
                     'Sell': copy.deepcopy(first_transaction_trade['Sell']),
                     'Buy': copy.deepcopy(last_transaction_trade['Buy'])
                 },
-                'Transaction': transaction_transaction
+                'Signer':
+                copy.deepcopy(first_transaction['Transaction']['Signer'])
             }
 
             combined_dex_trades_data.append(summarized_trade)
@@ -666,6 +667,7 @@ if __name__ == "__main__":
 
             token_details_dict = dexscreener.get_token_details(
                 list(remaining_mint_addresses))
+            edge_key_signer_dict = {}
 
             for dex_trade in combined_dex_trades_data:
 
@@ -682,6 +684,8 @@ if __name__ == "__main__":
 
                 trade_sell_mint_address = trade_sell['Currency']['MintAddress']
                 trade_buy_mint_address = trade_buy['Currency']['MintAddress']
+
+                signer = dex_trade['Signer']
 
                 for mint_address in [
                         trade_sell_mint_address, trade_buy_mint_address
@@ -764,14 +768,54 @@ if __name__ == "__main__":
                 if edge_key_main not in graph_data[
                         'edges'] and edge_key_reverse not in graph_data[
                             'edges']:
-                    graph_data['edges'][edge_key_main] = trade_amount_in_usd
+                    graph_data['edges'][edge_key_main] = {
+                        'trade_amount_in_usd_forward': trade_amount_in_usd,
+                        'trade_amount_in_usd_reverse': 0,
+                        'trade_amount_in_usd_net': trade_amount_in_usd,
+                        'no_of_signers_forward': 1,
+                        'no_of_signers_reverse': 0,
+                        'no_of_signers_combined': 1
+                    }
+                    edge_key_signer_dict[edge_key_main] = {
+                        'forward': [signer],
+                        'reverse': [],
+                        'combined': [signer]
+                    }
                 else:
                     if edge_key_main in graph_data['edges']:
-                        graph_data['edges'][
-                            edge_key_main] += trade_amount_in_usd
+                        graph_data['edges'][edge_key_main][
+                            'trade_amount_in_usd_forward'] += trade_amount_in_usd
+                        graph_data['edges'][edge_key_main][
+                            'trade_amount_in_usd_net'] += trade_amount_in_usd
+                        if signer not in edge_key_signer_dict[edge_key_main][
+                                'combined']:
+                            graph_data['edges'][edge_key_main][
+                                'no_of_signers_combined'] += 1
+                            edge_key_signer_dict[edge_key_main][
+                                'combined'].append(signer)
+                        if signer not in edge_key_signer_dict[edge_key_main][
+                                'forward']:
+                            graph_data['edges'][edge_key_main][
+                                'no_of_signers_forward'] += 1
+                            edge_key_signer_dict[edge_key_main][
+                                'forward'].append(signer)
                     else:
-                        graph_data['edges'][
-                            edge_key_reverse] -= trade_amount_in_usd
+                        graph_data['edges'][edge_key_reverse][
+                            'trade_amount_in_usd_reverse'] += trade_amount_in_usd
+                        graph_data['edges'][edge_key_reverse][
+                            'trade_amount_in_usd_net'] -= trade_amount_in_usd
+                        if signer not in edge_key_signer_dict[
+                                edge_key_reverse]['combined']:
+                            graph_data['edges'][edge_key_reverse][
+                                'no_of_signers_combined'] += 1
+                            edge_key_signer_dict[edge_key_reverse][
+                                'combined'].append(signer)
+                        if signer not in edge_key_signer_dict[
+                                edge_key_reverse]['reverse']:
+                            graph_data['edges'][edge_key_reverse][
+                                'no_of_signers_reverse'] += 1
+                            edge_key_signer_dict[edge_key_reverse][
+                                'reverse'].append(signer)
 
             graph_data['transaction_window'] = {
                 'earliest_local_block_time':
@@ -847,15 +891,15 @@ if __name__ == "__main__":
 
 # graph = {
 #     'nodes': {
-#         'A': {'name': 'Node A', 'index': 1, 'website': 'www.google.com'},
-#         'B': {'name': 'Node B', 'index': 2, 'website': 'www.youtube.com'},
-#         'C': {'name': 'Node C', 'index': 3, 'website': 'www.bbclan.com'},
-#         'D': {'name': 'Node D', 'index': 4, 'website': 'wwww.netflix.com'},
+#         'A': {'mint_address': 'B7DD12..', 'name': 'dogwifhat', 'symbol': 'WIF', 'volume': {}, 'price_change': {}, 'liquidity': {}, 'fdv': 123456, 'website': '', 'telegram': '', 'twitter': ''},
+#         'B': {'mint_address': 'C6AB72..', 'name': 'Popcat', 'symbol': 'POPCAT', 'volume': {}, 'price_change': {}, 'liquidity': {}, 'fdv': 123456, 'website': '', 'telegram': '', 'twitter': ''},
+#         'C': {'mint_address': 'D2DG92..', 'name': 'nubcat', 'symbol': 'NUB', 'volume': {}, 'price_change': {}, 'liquidity': {}, 'fdv': 123456, 'website': '', 'telegram': '', 'twitter': ''},
+#         'D': {'mint_address': 'VC5D56..', 'name': 'Peng', 'symbol': 'PENG', 'volume': {}, 'price_change': {}, 'liquidity': {}, 'fdv': 123456, 'website': '', 'telegram': '', 'twitter': ''},
 #     },
 #     'edges': {
-#         'A-B': 5,
-#         'A-C': 3,
-#         'B-A': 4,
-#         'C-D': 8
+#         'A-B': { 'trade_amount_in_usd_forward': 200, 'trade_amount_in_usd_reverse': 100, 'trade_amount_in_usd_net': 100, 'no_of_signers_forward': 12, 'no_of_signers_reverse': 6, 'no_of_signers_combined': 10 },
+#         'A-C': { 'trade_amount_in_usd_forward': 600, 'trade_amount_in_usd_reverse': 300, 'trade_amount_in_usd_net': 300, 'no_of_signers_forward': 14, 'no_of_signers_reverse': 3, 'no_of_signers_combined': 17 },
+#         'B-A': { 'trade_amount_in_usd_forward': 200, 'trade_amount_in_usd_reverse': 600, 'trade_amount_in_usd_net': -400, 'no_of_signers_forward': 9, 'no_of_signers_reverse': 21, 'no_of_signers_combined': 27 },
+#         'C-D': { 'trade_amount_in_usd_forward': 1000, 'trade_amount_in_usd_reverse': 200, 'trade_amount_in_usd_net': 800, 'no_of_signers_forward': 2, 'no_of_signers_reverse': 0, 'no_of_signers_combined': 2 },
 #     }
 # }

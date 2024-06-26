@@ -113,13 +113,20 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
         edge_middle_x.extend(middle_x)
         edge_middle_y.extend(middle_y)
 
-        edge_info = '{} --> {}<br>Net Volume: {:.2f} USD'.format(
+        edge_info = '{} --> {}<br>Net Volume: {:.2f} USD<br>Volume from {} --> {}: {:.2f} USD<br>Volume from {} --> {}: {:.2f} USD<br>No. of Unique Wallet Addresses Combined: {}<br>No. of Unique Wallet Addresses that swaps from {} --> {}: {}<br>No. of Unique Wallet Addresses that swaps from {} --> {}: {}'.format(
             G.nodes[edge[0]]['name'] + ' (' + G.nodes[edge[0]]['symbol'] + ')',
             G.nodes[edge[1]]['name'] + ' (' + G.nodes[edge[1]]['symbol'] + ')',
-            G.edges[edge]['weight'])
+            G.edges[edge]['weight_net'], G.nodes[edge[0]]['symbol'],
+            G.nodes[edge[1]]['symbol'], G.edges[edge]['weight_forward'],
+            G.nodes[edge[1]]['symbol'], G.nodes[edge[0]]['symbol'],
+            G.edges[edge]['weight_reverse'],
+            G.edges[edge]['no_of_signers_combined'],
+            G.nodes[edge[0]]['symbol'], G.nodes[edge[1]]['symbol'],
+            G.edges[edge]['no_of_signers_forward'], G.nodes[edge[1]]['symbol'],
+            G.nodes[edge[0]]['symbol'], G.edges[edge]['no_of_signers_reverse'])
         edge_hover_text.extend([edge_info] * EDGE_POINTS_QUANTITY)
 
-        arrow_color = weight_to_color(G.edges[edge]['weight'], min_weight,
+        arrow_color = weight_to_color(G.edges[edge]['weight_net'], min_weight,
                                       max_weight)
 
         annotations.append(
@@ -254,29 +261,42 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
     edge_weights = []
     filtered_nodes = set()
 
-    for edge, weight in edges.items():
+    for edge, edge_detail in edges.items():
         source, target = edge.split('-')
+        weight_forward = edge_detail['trade_amount_in_usd_forward']
+        weight_reverse = edge_detail['trade_amount_in_usd_reverse']
+        weight_net = edge_detail['trade_amount_in_usd_net']
+        no_of_signers_forward = edge_detail['no_of_signers_forward']
+        no_of_signers_reverse = edge_detail['no_of_signers_reverse']
+        no_of_signers_combined = edge_detail['no_of_signers_combined']
 
         if plot_filtered_addresses:
             if source not in plot_filtered_addresses and target not in plot_filtered_addresses:
                 continue
 
-        if weight == 0:
+        if weight_net == 0:
             continue
-        elif weight < 0:
+        elif weight_net < 0:
             temp_source = target
             target = source
             source = temp_source
-            weight = abs(weight)
+            weight_net = abs(weight_net)
 
-        if weight < volume_threshold:
+        if weight_net < volume_threshold:
             continue
 
         filtered_nodes.add(source)
         filtered_nodes.add(target)
-        edge_weights.append(weight)
+        edge_weights.append(weight_net)
 
-        G.add_edge(source, target, weight=weight)
+        G.add_edge(source,
+                   target,
+                   weight_forward=weight_forward,
+                   weight_reverse=weight_reverse,
+                   weight_net=weight_net,
+                   no_of_signers_forward=no_of_signers_forward,
+                   no_of_signers_reverse=no_of_signers_reverse,
+                   no_of_signers_combined=no_of_signers_combined)
 
     for node, attributes in nodes.items():
         if node in filtered_nodes:
