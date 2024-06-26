@@ -223,12 +223,12 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
     - User can double click on the chart to reset the view.
     - User can hover the mouse pointer above each node to see the token detail.
         <div align="center">
-            <img src="images/token_detail.png" width="600" height="181">
+            <img src="images/token_detail.png" width="600" height="201">
             <p><em>Token Detail</em></p>
         </div>
     - User can hover the mouse pointer above each edge to see the net volume flow of the token pair.
         <div align="center">
-            <img src="images/token_pair_net_volume_flow.png" width="600" height="237">
+            <img src="images/token_pair_net_volume_flow.png" width="800" height="149">
             <p><em>Token Pair Net Volume Flow</em></p>
         </div>
 <br>
