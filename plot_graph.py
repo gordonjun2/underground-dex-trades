@@ -171,6 +171,7 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
         hoverinfo='text',
         textfont=dict(size=10),
         hovertext=node_hover_text,
+        hoverlabel=dict(bgcolor='mistyrose', font=dict(color='darkred')),
         marker=dict(
             color='firebrick',
             size=node_size,  # Node size based on normalized 'fdv'
@@ -195,6 +196,8 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
                              showlegend=False,
                              hovertemplate="%{hovertext}<extra></extra>",
                              hovertext=edge_hover_text,
+                             hoverlabel=dict(bgcolor='lightblue',
+                                             font=dict(color='darkblue')),
                              marker=go.Marker(opacity=EDGE_POINTS_OPACITY))
 
     colorbar_trace = go.Scatter(
@@ -280,6 +283,15 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
             temp_source = target
             target = source
             source = temp_source
+
+            temp_weight_reverse = weight_forward
+            weight_forward = weight_reverse
+            weight_reverse = temp_weight_reverse
+
+            temp_no_of_signers_reverse = no_of_signers_forward
+            no_of_signers_forward = no_of_signers_reverse
+            no_of_signers_reverse = temp_no_of_signers_reverse
+
             weight_net = abs(weight_net)
 
         if weight_net < volume_threshold:
