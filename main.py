@@ -574,6 +574,11 @@ if __name__ == "__main__":
                 sys.exit(1)
 
             unique_mint_addresses = load_json_file(file_path)
+
+            if not is_list_of_strings(unique_mint_addresses):
+                print("\nThe list of mint addresses is in the wrong format.\n")
+                sys.exit(1)
+
             unique_mint_addresses = set(unique_mint_addresses) - set(
                 EXCLUDED_MINT_ADDRESSES)
             total_no_of_unique_mint_addresses = len(unique_mint_addresses)
@@ -622,6 +627,10 @@ if __name__ == "__main__":
 
             unique_signatures = load_json_file(file_path)
 
+            if not is_list_of_strings(unique_signatures):
+                print("\nThe list of signatures is in the wrong format.\n")
+                sys.exit(1)
+
             print('\nNo. of unique signatures retrieved: {}'.format(
                 len(unique_signatures)))
 
@@ -655,7 +664,17 @@ if __name__ == "__main__":
                 sys.exit(1)
 
             combined_dex_trades_data = load_json_file(file_path)
+
+            if not is_list_of_dicts(combined_dex_trades_data):
+                print(
+                    "\nThe list of DEX trades data is in the wrong format.\n")
+                sys.exit(1)
+
             remaining_mint_addresses = load_json_file(addresses_file_path)
+
+            if not is_list_of_strings(remaining_mint_addresses):
+                print("\nThe list of mint addresses is in the wrong format.\n")
+                sys.exit(1)
 
         print('\nNo. of processed DEX Trades data retrieved: {}'.format(
             len(combined_dex_trades_data)))
@@ -844,6 +863,14 @@ if __name__ == "__main__":
             sys.exit(1)
 
         graph_data = load_json_file(file_path)
+
+        if not isinstance(graph_data, dict):
+            print("\nThe graph data is in the wrong format.\n")
+            sys.exit(1)
+
+        if 'nodes' not in graph_data or 'edges' not in graph_data:
+            print("\nThe graph data is missing nodes or edges.\n")
+            sys.exit(1)
 
     if filter_type == 'NAME':
         plot_filter_name_list = plot_filter_names.strip().replace(

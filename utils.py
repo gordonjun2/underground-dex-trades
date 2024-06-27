@@ -49,3 +49,13 @@ def convert_utc_to_user_timezone(utc_time_str):
     user_time = utc_time.astimezone(local_timezone)
 
     return user_time
+
+
+def is_list_of_strings(variable):
+    return isinstance(variable, list) and all(
+        isinstance(item, str) for item in variable)
+
+
+def is_list_of_dicts(variable):
+    return isinstance(variable, list) and all(
+        isinstance(item, dict) for item in variable)

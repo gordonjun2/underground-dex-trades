@@ -37,7 +37,8 @@ EXCLUDED_MINT_ADDRESSES = [
     'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1',  # bSOL
     'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So',  # mSOL
     '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',  # WBTC
-    '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs'  # WETH
+    '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',  # WETH
+    'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL'  # JTO
 ]
 
 variables = {}

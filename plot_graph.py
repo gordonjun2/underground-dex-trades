@@ -91,7 +91,7 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
         node_x.append(x)
         node_y.append(y)
         node_size.append(size)
-        node_info = '{} ({})<br>Mint Address: {}<br>FDV: {}<br>Website: {}<br>Telegram: {}<br>Twitter: {}'.format(
+        node_info = '{} ({})<br>Mint Address: {}<br>FDV: {:,.2f} USD<br>Website: {}<br>Telegram: {}<br>Twitter: {}'.format(
             G.nodes[node]['name'], G.nodes[node]['symbol'],
             G.nodes[node]['mint_address'], G.nodes[node]['fdv'],
             G.nodes[node]['website'], G.nodes[node]['telegram'],
@@ -113,7 +113,7 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
         edge_middle_x.extend(middle_x)
         edge_middle_y.extend(middle_y)
 
-        edge_info = '{} --> {}<br>Net Volume: {:.2f} USD<br>Volume from {} --> {}: {:.2f} USD<br>Volume from {} --> {}: {:.2f} USD<br>No. of Unique Wallet Addresses Combined: {}<br>No. of Unique Wallet Addresses that swaps from {} --> {}: {}<br>No. of Unique Wallet Addresses that swaps from {} --> {}: {}'.format(
+        edge_info = '{} --> {}<br>Net Volume: {:,.2f} USD<br>Volume from {} --> {}: {:,.2f} USD<br>Volume from {} --> {}: {:,.2f} USD<br>No. of Unique Wallet Addresses Combined: {}<br>No. of Unique Wallet Addresses that swaps from {} --> {}: {}<br>No. of Unique Wallet Addresses that swaps from {} --> {}: {}'.format(
             G.nodes[edge[0]]['name'] + ' (' + G.nodes[edge[0]]['symbol'] + ')',
             G.nodes[edge[1]]['name'] + ' (' + G.nodes[edge[1]]['symbol'] + ')',
             G.edges[edge]['weight_net'], G.nodes[edge[0]]['symbol'],
@@ -227,7 +227,7 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
                 text=
                 ('<span style="font-size:24px;font-weight:bold;color:black;text-decoration:underline;">Underground DEX Trades</span><br>'
                  '<span style="font-size:16px;color:black;"><i>Transactions from {} to {}</i></span><br>'
-                 '<span style="font-size:16px;color:black;"><i>Minimum Volume Threshold: {:.2f} USD</i></span><br>'
+                 '<span style="font-size:16px;color:black;"><i>Minimum Volume Threshold: {:,.2f} USD</i></span><br>'
                  '<span style="font-size:16px;color:black;"><i>Filtered: {}</i></span><br>'
                  ).format(earliest_local_block_time, latest_local_block_time,
                           volume_threshold, is_filtered),
