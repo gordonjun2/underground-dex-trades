@@ -60,9 +60,10 @@ def weight_to_color(weight,
         return mcolors.to_hex(cmap(norm(weight)))
 
 
-def create_plotly_graph(G, pos, edge_weights, volume_threshold,
-                        earliest_local_block_time, latest_local_block_time,
-                        is_filtered):
+def create_plotly_graph(G, pos, edge_weights,
+                        node_total_no_of_signers_combined_dict,
+                        volume_threshold, earliest_local_block_time,
+                        latest_local_block_time, is_filtered):
     edge_x_1 = []
     edge_y_1 = []
     edge_x_2 = []
@@ -77,26 +78,47 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
     min_weight = min(edge_weights)
     max_weight = max(edge_weights)
 
+    total_no_of_signers_combined_list = [
+        no_of_signers
+        for _, no_of_signers in node_total_no_of_signers_combined_dict.items()
+    ]
+    min_no_of_signers_combined = min(total_no_of_signers_combined_list)
+    max_no_of_signers_combined = max(total_no_of_signers_combined_list)
+
     node_x = []
     node_y = []
-    node_size = []
+    node_sizes = []
     node_hover_text = []
+    node_colours = []
 
     fdv_values = np.array([G.nodes[node]['fdv'] for node in G.nodes()])
     min_fdv, max_fdv = fdv_values.min(), fdv_values.max()
-    norm_node_size = 200 + 1000 * (fdv_values - min_fdv) / (max_fdv - min_fdv)
+    norm_node_sizes = 200 + 1000 * (fdv_values - min_fdv) / (max_fdv - min_fdv)
 
-    for node, size in zip(G.nodes(), norm_node_size):
+    for node, size in zip(G.nodes(), norm_node_sizes):
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
-        node_size.append(size)
-        node_info = '{} ({})<br>Mint Address: {}<br>FDV: {:,.2f} USD<br>Website: {}<br>Telegram: {}<br>Twitter: {}'.format(
+
+        node_sizes.append(size)
+
+        node_total_no_of_signers_combined = node_total_no_of_signers_combined_dict.get(
+            node, 0)
+
+        node_info = '{} ({})<br>Mint Address: {}<br>FDV: {:,.2f} USD<br>Website: {}<br>Telegram: {}<br>Twitter: {}<br>Combined No. of Wallet Addresses that interacts with the Token: {}'.format(
             G.nodes[node]['name'], G.nodes[node]['symbol'],
             G.nodes[node]['mint_address'], G.nodes[node]['fdv'],
             G.nodes[node]['website'], G.nodes[node]['telegram'],
-            G.nodes[node]['twitter'])
+            G.nodes[node]['twitter'], node_total_no_of_signers_combined)
+
         node_hover_text.append(node_info)
+
+        node_colour = weight_to_color(node_total_no_of_signers_combined,
+                                      min_no_of_signers_combined,
+                                      max_no_of_signers_combined,
+                                      cmap=plt.cm.plasma,
+                                      use_log=False)
+        node_colours.append(node_colour)
 
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
@@ -124,6 +146,7 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
             G.nodes[edge[0]]['symbol'], G.nodes[edge[1]]['symbol'],
             G.edges[edge]['no_of_signers_forward'], G.nodes[edge[1]]['symbol'],
             G.nodes[edge[0]]['symbol'], G.edges[edge]['no_of_signers_reverse'])
+
         edge_hover_text.extend([edge_info] * EDGE_POINTS_QUANTITY)
 
         arrow_color = weight_to_color(G.edges[edge]['weight_net'], min_weight,
@@ -173,8 +196,8 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
         hovertext=node_hover_text,
         hoverlabel=dict(bgcolor='mistyrose', font=dict(color='darkred')),
         marker=dict(
-            color='firebrick',
-            size=node_size,  # Node size based on normalized 'fdv'
+            color=node_colours,
+            size=node_sizes,  # Node size based on normalized 'fdv'
             sizemode='area',
             line_width=2))
 
@@ -200,27 +223,60 @@ def create_plotly_graph(G, pos, edge_weights, volume_threshold,
                                              font=dict(color='darkblue')),
                              marker=go.Marker(opacity=EDGE_POINTS_OPACITY))
 
-    colorbar_trace = go.Scatter(
+    colorbar_trace_1 = go.Scatter(
         x=[None],
         y=[None],
         mode='markers',
-        marker=dict(colorscale='Viridis',
-                    cmin=min_weight,
-                    cmax=max_weight,
-                    colorbar=dict(
-                        title='Edge Weight (Net Volume in USD)',
-                        titleside='right',
-                        thickness=15,
-                        tickvals=[min_weight, max_weight],
-                        ticktext=[f'{min_weight:.2f}', f'{max_weight:.2f}'],
-                        tickformat='.2f',
-                        tickmode='array')),
+        marker=dict(
+            colorscale='Viridis',
+            cmin=min_weight,
+            cmax=max_weight,
+            colorbar=dict(
+                title='Edge Weight (Net Volume in USD)',
+                titleside='right',
+                thickness=15,
+                tickvals=[min_weight, max_weight],
+                ticktext=[f'{min_weight:.2f}', f'{max_weight:.2f}'],
+                tickformat='.2f',
+                tickmode='array',
+                x=1,  # Adjust the colorbar position
+                y=0.5,  # Centering the colorbar vertically
+            )),
+        showlegend=False,
+        hoverinfo='none')
+
+    colorbar_trace_2 = go.Scatter(
+        x=[None],
+        y=[None],
+        mode='markers',
+        marker=dict(
+            colorscale='Plasma',
+            cmin=min_no_of_signers_combined,
+            cmax=max_no_of_signers_combined,
+            colorbar=dict(
+                title=
+                'Combined No. of Wallet Addresses (Unique per Edge) that interacts with the Token',
+                titleside='right',
+                thickness=15,
+                tickvals=[
+                    min_no_of_signers_combined, max_no_of_signers_combined
+                ],
+                ticktext=[
+                    f'{min_no_of_signers_combined}',
+                    f'{max_no_of_signers_combined}'
+                ],
+                tickformat='d',
+                tickmode='array',
+                x=1.05,  # Position to the right of the first colorbar
+                y=0.5,  # Centering the colorbar vertically
+                len=0.75)),
         showlegend=False,
         hoverinfo='none')
 
     fig = go.Figure(
         data=[
-            edge_trace_1, edge_trace_2, node_trace, mnode_trace, colorbar_trace
+            edge_trace_1, edge_trace_2, node_trace, mnode_trace,
+            colorbar_trace_1, colorbar_trace_2
         ],
         layout=go.Layout(
             title=dict(
@@ -263,6 +319,7 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
 
     edge_weights = []
     filtered_nodes = set()
+    node_total_no_of_signers_combined_dict = {}
 
     for edge, edge_detail in edges.items():
         source, target = edge.split('-')
@@ -297,6 +354,20 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
         if weight_net < volume_threshold:
             continue
 
+        if source not in node_total_no_of_signers_combined_dict:
+            node_total_no_of_signers_combined_dict[
+                source] = no_of_signers_combined
+        else:
+            node_total_no_of_signers_combined_dict[
+                source] += no_of_signers_combined
+
+        if target not in node_total_no_of_signers_combined_dict:
+            node_total_no_of_signers_combined_dict[
+                target] = no_of_signers_combined
+        else:
+            node_total_no_of_signers_combined_dict[
+                target] += no_of_signers_combined
+
         filtered_nodes.add(source)
         filtered_nodes.add(target)
         edge_weights.append(weight_net)
@@ -321,7 +392,8 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
                            resolution=0.8,
                            equidistant=True)
 
-    fig = create_plotly_graph(G, pos, edge_weights, volume_threshold,
-                              earliest_local_block_time,
+    fig = create_plotly_graph(G, pos, edge_weights,
+                              node_total_no_of_signers_combined_dict,
+                              volume_threshold, earliest_local_block_time,
                               latest_local_block_time, is_filtered)
     fig.show()
