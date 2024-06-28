@@ -31,14 +31,12 @@ EXCLUDED_MINT_ADDRESSES = [
     'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',  # USDT
     '27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4',  # USDT
     'jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v',  # JLP
-    'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',  # JUP
     'vSoLxydx6akxyMD9XEcPvGYNGq6Nn66oqVb3UkGkei7',  # vSOL
     'J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn',  # JitoSOL
     'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1',  # bSOL
     'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So',  # mSOL
     '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',  # WBTC
     '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',  # WETH
-    'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL'  # JTO
 ]
 
 variables = {}

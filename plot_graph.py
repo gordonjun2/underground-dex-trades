@@ -1,3 +1,4 @@
+import sys
 import networkx as nx
 import plotly.graph_objects as go
 import numpy as np
@@ -380,6 +381,10 @@ def plot_nodes_edges_graph(graph_data, plot_filtered_addresses,
                    no_of_signers_forward=no_of_signers_forward,
                    no_of_signers_reverse=no_of_signers_reverse,
                    no_of_signers_combined=no_of_signers_combined)
+
+    if not edge_weights:
+        print('\nNo graph data available to plot.\n')
+        sys.exit(1)
 
     for node, attributes in nodes.items():
         if node in filtered_nodes:
