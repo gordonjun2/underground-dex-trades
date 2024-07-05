@@ -687,6 +687,7 @@ if __name__ == "__main__":
             token_details_dict = dexscreener.get_token_details(
                 list(remaining_mint_addresses))
             edge_key_signer_dict = {}
+            signer_total_trade_amount_in_usd_dict = {}
 
             for dex_trade in combined_dex_trades_data:
 
@@ -836,6 +837,13 @@ if __name__ == "__main__":
                             edge_key_signer_dict[edge_key_reverse][
                                 'reverse'].append(signer)
 
+                if signer not in signer_total_trade_amount_in_usd_dict:
+                    signer_total_trade_amount_in_usd_dict[
+                        signer] = trade_amount_in_usd
+                else:
+                    signer_total_trade_amount_in_usd_dict[
+                        signer] += trade_amount_in_usd
+
             graph_data['transaction_window'] = {
                 'earliest_local_block_time':
                 earliest_local_block_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
@@ -844,8 +852,11 @@ if __name__ == "__main__":
             }
 
             saved_graph_data_file_path = f"{saved_data_folder_file_path}/graph_data_{current_datetime}.json"
+            saved_signer_total_trade_amount_data_file_path = f"{saved_data_folder_file_path}/signer_total_trade_amount_data_{current_datetime}.json"
 
             save_json_file(saved_graph_data_file_path, graph_data)
+            save_json_file(saved_signer_total_trade_amount_data_file_path,
+                           signer_total_trade_amount_in_usd_dict)
 
         else:
             print('\nNo DEX Trades data retrieved.')

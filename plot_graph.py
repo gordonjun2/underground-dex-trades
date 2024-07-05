@@ -5,7 +5,8 @@ import numpy as np
 from collections import deque
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from config import (EDGE_POINTS_QUANTITY, EDGE_POINTS_OPACITY)
+from config import (EDGE_POINTS_QUANTITY, EDGE_POINTS_OPACITY,
+                    MARKED_MINT_ADDRESSES)
 
 # References:
 # - https://stackoverflow.com/questions/74607000/python-networkx-plotly-how-to-display-edges-mouse-over-text
@@ -80,8 +81,9 @@ def create_plotly_graph(G, pos, edge_weights,
     max_weight = max(edge_weights)
 
     total_no_of_signers_combined_list = [
-        no_of_signers
-        for _, no_of_signers in node_total_no_of_signers_combined_dict.items()
+        no_of_signers for node, no_of_signers in
+        node_total_no_of_signers_combined_dict.items()
+        if node not in MARKED_MINT_ADDRESSES
     ]
     min_no_of_signers_combined = min(total_no_of_signers_combined_list)
     max_no_of_signers_combined = max(total_no_of_signers_combined_list)
@@ -114,11 +116,15 @@ def create_plotly_graph(G, pos, edge_weights,
 
         node_hover_text.append(node_info)
 
-        node_colour = weight_to_color(node_total_no_of_signers_combined,
-                                      min_no_of_signers_combined,
-                                      max_no_of_signers_combined,
-                                      cmap=plt.cm.plasma,
-                                      use_log=False)
+        if node not in MARKED_MINT_ADDRESSES:
+            node_colour = weight_to_color(node_total_no_of_signers_combined,
+                                          min_no_of_signers_combined,
+                                          max_no_of_signers_combined,
+                                          cmap=plt.cm.plasma,
+                                          use_log=False)
+        else:
+            node_colour = 'red'
+
         node_colours.append(node_colour)
 
     for edge in G.edges():
