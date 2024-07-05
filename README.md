@@ -17,7 +17,16 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
 - **The program can only scan DEX trades data from Solana blockchain**. I may consider to add support for EVM chains, such as Ethereum and Base.
 - [Bitquery Early Access Program (EAP)](https://docs.bitquery.io/docs/graphql/dataset/EAP/) is used to query Solana DEX trades data in this project. As this API version is considered new, future updates on this API may break the program. 
     - EAP is currently limited to real-time information and does not include historical data. Hence, the amount of DEX trades data retrieved from the API is limited. Due to this, any insight produced from this program is only short-term.
+- I am using Dexscreener API to retrieve token details. To avoid missing token information due to a limit to the number of data I can retrieve per API call, I am unable to batch request more than one token detail at once. I am considering ways to get token details more efficiently.
 - Please let me know if there are any errors or ways the code may be improved.
+<br>
+
+### Future Updates
+- Save wallets that trade large sum of money (may indicate sophisticated player)
+    - This can serve as a first filter for other conditions, such as:
+        - Check the number of non-excluded tokens, eg. meme coins, the wallet is holding
+        - Check wallet balance updates
+        - Check their trade size with respect to their wallet balance (eg. trade_size / wallet_balance >= certain_limit)
 <br>
 
 ### How It Works
@@ -231,6 +240,7 @@ Underground DEX Trades is a program designed to visualize blockchain transaction
             <img src="images/token_pair_net_volume_flow.png" width="800" height="149">
             <p><em>Token Pair Net Volume Flow</em></p>
         </div>
+    - One potential method to gauge growing interest in a token is by observing the net volume flowing into it (indicated by yellowish edges) and the number of wallets interacting with the token (represented by yellowish nodes).
 <br>
 
 ### **Other APIs Usage**
